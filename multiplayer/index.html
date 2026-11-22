@@ -674,7 +674,12 @@ async function boot(){
  if(!API_BASE){document.getElementById('bar').innerHTML='';document.getElementById('app').innerHTML='<main class="login"><div class="login-hero"><h1>Assetmanagement Tycoon</h1><p>De multiplayeromgeving wordt ingericht.</p></div><div class="login-form"><h2>Cloudflare nog niet gekoppeld</h2><p>De spelleider kan de game starten zodra de Cloudflare Worker is gepubliceerd en de API-URL in <code>config.js</code> is ingevuld.</p></div></main>';return;}
  try{const c=new AbortController(),timer=setTimeout(()=>c.abort(),7000);const r=await fetch(api('/api/ping'),{signal:c.signal,cache:'no-store'});clearTimeout(timer);const p=r.ok?await r.json():null;if(!p||p.version!==G.VERSION)throw new Error('De Cloudflare Worker reageert niet met de juiste spelversie.');}catch(e){document.getElementById('app').innerHTML='<main class="login"><div class="login-hero"><h1>Assetmanagement Tycoon</h1></div><div class="login-form"><h2>Verbinding niet beschikbaar</h2><p>Controleer de Cloudflare Worker, D1-database en API-URL.</p><button class="btn primary wide" onclick="location.reload()">Opnieuw proberen</button></div></main>';return;}
  await load(true);
- setInterval(()=>{if(document.visibilityState==='visible'&&!busy){const focused=document.activeElement;const isInput=focused&&['INPUT','TEXTAREA','SELECT'].includes(focused.tagName);if(!isInput)load(false);}},1800);
+ setInterval(()=>{
+  if(!pin||document.visibilityState!=='visible'||busy)return;
+  const focused=document.activeElement;
+  const isInput=focused&&['INPUT','TEXTAREA','SELECT'].includes(focused.tagName);
+  if(!isInput)load(false);
+ },1800);
 }
 boot();
 })();
