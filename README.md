@@ -32,3 +32,10 @@ Deze openbare versie bevat scenario-informatie in de broncode. Gebruik hem niet 
 ## Nieuwe versies
 
 Bewaar voor nieuwe releases een back-up, vervang vervolgens `index.html` en werk het versienummer in dit bestand bij.
+
+
+## Cloudflare multiplayer (voorbereid, nog niet live)
+
+De nieuwe [multiplayerinterface](multiplayer/index.html) is toegevoegd en geeft na inrichting van Cloudflare toegang aan de spelleider en drie teams. De frontend bevat **geen verborgen scenario-informatie**. De spelengine en docentinhoud komen in een afgeschermde Cloudflare Worker met een eigen D1-database.
+
+**De Cloudflare Worker en D1-database moeten nog in Cloudflare worden aangemaakt.** Daarna hoeft alleen de Worker-URL in [`multiplayer/config.js`](multiplayer/config.js) te worden ingevuld. De backendcode is bewust niet in deze openbare repository opgenomen. De huidige hoofdversie (`index.html`) blijft voorlopig de zelfstandig speelbare 0.34 en is niet geschikt als afgeschermde multiplayeromgeving, omdat daarin scenario-inhoud in de browser is opgenomen.
