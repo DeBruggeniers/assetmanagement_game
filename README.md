@@ -1,10 +1,10 @@
-# Assetmanagement Tycoon
+# De Assetmanagement Game - Noordzeeland Draait Door
 
 **Versie 0.34** | Serious game over organisatieontwikkeling en assetmanagement in de fictieve provincie Noordzeeland.
 
 ## Open de game
 
-[Start Assetmanagement Tycoon](https://debruggeniers.github.io/assetmanagement_game/)
+[Start De Assetmanagement Game - Noordzeeland Draait Door](https://debruggeniers.github.io/assetmanagement_game/)
 
 > De bovenstaande link werkt zodra GitHub Pages voor deze repository is ingeschakeld.
 

@@ -1,4 +1,4 @@
-# Assetmanagement Tycoon - Cloudflare multiplayer
+# De Assetmanagement Game - Noordzeeland Draait Door - Cloudflare multiplayer
 
 Dit is de publieke interface voor de multiplayer-versie. De game gebruikt GitHub Pages voor de website en Cloudflare Workers + D1 voor de gezamenlijke spelstand.
 
