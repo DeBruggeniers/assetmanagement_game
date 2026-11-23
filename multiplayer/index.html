@@ -426,12 +426,6 @@
  font-size:1.3em;
  line-height:1.03;
 }
-.game-start__intro{
- margin:0;
- max-width:35ch;
- font-size:clamp(1rem,1.33vw,1.45rem);
- line-height:1.32;
-}
 .game-start__panel{
  margin:2rem clamp(1.5rem,3vw,4.75rem) 2rem 0;
  padding:clamp(1.6rem,2.2vw,3.2rem);
@@ -507,7 +501,6 @@
  .game-start__art{object-position:center bottom;mask-image:none}
  .game-start__copy{max-width:47%}
  .game-start__copy h1{font-size:clamp(1.45rem,4.6vw,3.65rem)}
- .game-start__intro{font-size:clamp(.82rem,2.2vw,1.18rem)}
  .game-start__panel{width:min(calc(100% - 2rem),540px);box-sizing:border-box;margin:0 auto 1.5rem}
 }
 @media(max-width:440px){
@@ -569,7 +562,6 @@ function renderLogin(){
    <div class="game-start__copy">
     <p class="game-start__eyebrow" aria-hidden="true">De Assetmanagement Game</p>
     <h1 aria-label="De Assetmanagement Game - Noordzeeland Draait Door">Noordzeeland <span>Draait Door</span></h1>
-    <p class="game-start__intro">Een brug valt stil. Een weg is toe aan groot onderhoud. Jullie budget is beperkt. <strong>Hoe houden jullie Noordzeeland de komende tien jaar draaiende?</strong></p>
    </div>
   </div>
   <form class="game-start__panel" aria-labelledby="game-start-title" onsubmit="event.preventDefault();login()">
