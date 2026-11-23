@@ -2,9 +2,9 @@
 
 Dit is de publieke interface voor de multiplayer-versie. De game gebruikt GitHub Pages voor de website en Cloudflare Workers + D1 voor de gezamenlijke spelstand.
 
-**Status: voorbereide versie.** De Cloudflare Worker is nog niet gepubliceerd, dus aanmelden werkt pas nadat `config.js` de echte Worker-URL bevat.
+De multiplayerwebsite gebruikt de Worker-URL uit `config.js`.
 
-De spelleider start een sessie met een beheercode die uitsluitend als Cloudflare Secret is opgeslagen. De drie teams krijgen eigen toegangscodes. De spelengine en verborgen scenario-informatie worden alleen in de afgeschermde Cloudflare Worker gebruikt, niet in deze openbare map.
+De spelleider start een sessie met een beheercode die uitsluitend als Cloudflare Secret is opgeslagen. De vier teams gebruiken vaste toegangscodes: `MT1` voor De Bruggenbouwers, `MT2` voor De Wegwijzers, `MT3` voor De Betonbazen en `MT4` voor De Waterwachten. De spelengine en verborgen scenario-informatie worden alleen in de afgeschermde Cloudflare Worker gebruikt, niet in deze openbare map.
 
 De bronbestanden voor Cloudflare worden apart als backendpakket geleverd en mogen niet in deze publieke repository worden geplaatst.
 
