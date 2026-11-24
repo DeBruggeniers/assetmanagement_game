@@ -916,7 +916,6 @@ ${['improved','upgraded'].includes(green)?'<ellipse cx="380" cy="330" rx="120" r
 </svg>`;}
 const boardScores=[['b','Bereikbaarheid','road'],['l','Leefbaarheid','leaf'],['v','Veiligheid','shield']];
 const boardIntroduced=new Set();
-let boardEncounter='', boardIntroUntil=0, boardIntroTimer;
 
 function activeEventZone(){
  if(!v?.event||v.phase==='PLAN'||v.finished)return null;
@@ -932,27 +931,16 @@ function updateBoardIntroduction(){
  if(!v.me||v.finished)return;
  if(v.phase==='PLAN'&&v.year===1&&!v.me.plans?.[1]){
   boardIntroduced.clear();
-  boardEncounter='';
-  boardIntroUntil=0;
  }
  if(v.phase!=='DO'||!v.event)return;
  const encounter=[v.me.id,v.year,v.event.id].join(':');
  if(boardIntroduced.has(encounter))return;
  boardIntroduced.add(encounter);
- boardEncounter=encounter;
- boardIntroUntil=Date.now()+8500;
  const live=document.getElementById('board-live');
  if(live)live.textContent='Bram: '+eventIntroduction();
- clearTimeout(boardIntroTimer);
- boardIntroTimer=setTimeout(()=>{
-  const brief=document.querySelector('.board-note .board-brief,.board-note-dock .board-brief');
-  if(brief)brief.closest('.board-note-copy')?.remove();
-  positionBoardNote();
- },8500);
 }
 function bramIntroduction(){
- const encounter=[v.me?.id,v.year,v.event?.id].join(':');
- if(v.phase!=='DO'||!v.event||encounter!==boardEncounter||Date.now()>=boardIntroUntil)return '';
+ if(!v.me||v.finished||v.phase!=='DO'||!v.event)return '';
  return `<p class="board-brief">${esc(eventIntroduction())}</p>`;
 }
 function checkScoreChanges(team){
