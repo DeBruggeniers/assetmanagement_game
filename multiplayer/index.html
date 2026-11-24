@@ -541,8 +541,8 @@
 .board-note-dock{padding:8px 10px;background:#edf4f5}
 .board-note{display:flex;align-items:center;gap:9px;width:max-content;max-width:100%;color:#102c45;box-sizing:border-box}
 .board-note-dock .board-note{flex-wrap:wrap}
-.board-note-dock.board-copy-docked:has(.board-note-copy:not(:empty))::before{content:attr(data-location);font-weight:750}
-.board-note-dock>.board-note-copy{max-width:none;margin-top:4px}
+.board-note-dock.board-copy-docked:has(.board-note-copy:not(:empty))::before{content:attr(data-location);display:block;font-weight:750;margin-left:var(--caption-dock-x,0px)}
+.board-note-dock>.board-note-copy{width:min(245px,100%);max-width:none;margin:4px 0 0 var(--caption-dock-x,0px)}
 .board-note-dock.board-copy-docked:not(:has(.board-brief,.board-impact)){display:none}
 .board-note-dock .board-note::before{content:attr(data-location);font-weight:750;width:100%}
 .world-image>.board-note{position:absolute;inset:0;z-index:7;display:block;width:auto;pointer-events:none}
@@ -1004,59 +1004,73 @@ function positionBoardNote(){
  };
  const avatarWidth=Math.max(43,Math.min(82,frame.width*0.082));
  const captionWidth=Math.max(126,Math.min(180,frame.width*0.23));
- for(const compact of [false,true]){
+ for(const size of ['regular','wide','compact']){
+  const compact=size==='compact';
   note.style.setProperty('--bram-width',(compact?Math.max(38,avatarWidth*0.88):avatarWidth)+'px');
-  note.style.setProperty('--bram-text-width',(compact?Math.max(112,captionWidth*0.87):captionWidth)+'px');
+  note.style.setProperty('--bram-text-width',(compact?Math.max(112,captionWidth*0.87):size==='wide'?Math.min(210,frame.width*0.36):captionWidth)+'px');
   const {width,height}=bram.getBoundingClientRect();
   const text=copy?.getBoundingClientRect();
-  // Anchor on Bram's feet so a longer introduction cannot push him away from the pin.
+  // Choose the caption relative to the current marker first, then fit Bram around it.
   const horizontal=[0.25,0.55,0.85,1.15,1.5,1.9,2.3,2.7];
   const vertical=Array.from({length:31},(_,i)=>(i-12)/10);
-  const places=horizontal.flatMap(shift=>[-1,1].flatMap(side=>vertical.map(offset=>{
+  const presenters=horizontal.flatMap(shift=>[-1,1].flatMap(side=>vertical.map(offset=>{
    const dx=side*width*shift;
    const x=Math.max(8,Math.min(cx+dx-width/2,frame.width-width-8));
    const y=Math.max(8,Math.min(cy-height*0.83+offset*height,frame.height-height-8));
    return {x,y,side,distance:Math.hypot(x+width/2-cx,y+height-cy)};
-  }))).sort((a,b)=>a.distance-b.distance);
-  let nearestWithoutCaption;
-  for(const place of places){
-   const {x,y,side}=place;
-   if(!fits(x,y,width,height))continue;
-   let caption;
-   if(text?.height){
-    const gap=9;
-    const outside=side<0?x-text.width-gap:x+width+gap;
-    const inside=side<0?x+width+gap:x-text.width-gap;
-    const head=y+Math.min(26,height*0.21);
-    const clampTextTop=top=>Math.min(Math.max(8,top),frame.height-text.height-8);
-    const candidates=[head-10,head-text.height*0.55,head+text.height*0.45,head-text.height+10,head+height*0.55]
-     .flatMap(top=>[
-      {x:outside,y:clampTextTop(top),tail:side<0?'right':'left'},
-      {x:inside,y:clampTextTop(top),tail:side<0?'left':'right'},
-     ]);
-    for(const left of [x+(width-text.width)/2,x,x+width-text.width]){
-     const tx=Math.max(8,Math.min(left,frame.width-text.width-8));
-     candidates.push({x:tx,y:y-text.height-gap,tail:'bottom'},{x:tx,y:y+height+gap,tail:'top'});
-    }
-    caption=candidates.find(item=>fits(item.x,item.y,text.width,text.height,10));
-    if(!caption){nearestWithoutCaption??=place;continue;}
-   }
-   putNote(place,caption,text,width,height);
+  }))).filter(({x,y})=>fits(x,y,width,height)).sort((a,b)=>a.distance-b.distance);
+  const nearestWithoutCaption=presenters[0];
+  if(!text?.height&&nearestWithoutCaption){
+   putNote(nearestWithoutCaption,null);
    return;
+  }
+  if(text?.height){
+   const clearance=11;
+   const clamp=(value,length,limit)=>Math.max(8,Math.min(value,limit-length-8));
+   const textX=clamp(cx-text.width/2,text.width,frame.width);
+   const textY=clamp(cy-text.height/2,text.height,frame.height);
+   // Free rectangles start either at a map edge or just beyond an obstacle.
+   const columns=new Set([textX,8,frame.width-text.width-8]);
+   const rows=new Set([textY,8,frame.height-text.height-8]);
+   for(const obstacle of obstacles){
+    columns.add(obstacle.left-frame.left-text.width-clearance);
+    columns.add(obstacle.right-frame.left+clearance);
+    rows.add(obstacle.top-frame.top-text.height-clearance);
+    rows.add(obstacle.bottom-frame.top+clearance);
+   }
+   const captions=[];
+   for(const x of columns)for(const y of rows){
+    const dx=cx<x?cx-x:cx>x+text.width?cx-x-text.width:0;
+    const dy=cy<y?cy-y:cy>y+text.height?cy-y-text.height:0;
+    const distance=Math.hypot(dx,dy);
+    if(distance>Math.max(96,frame.width*0.095)||!fits(x,y,text.width,text.height,10))continue;
+    const tail=Math.abs(dx)>Math.abs(dy)?(dx<0?'left':'right'):(dy<0?'top':'bottom');
+    captions.push({x,y,tail,score:distance+0.13*Math.hypot(x-textX,y-textY)});
+   }
+   captions.sort((a,b)=>a.score-b.score);
+   for(const caption of captions){
+    const {x,y}=caption;
+    const place=presenters.find(p=>p.x+width+8<=x||p.x>=x+text.width+8||
+     p.y+height+8<=y||p.y>=y+text.height+8);
+    if(!place)continue;
+    putNote(place,caption,text);
+    return;
+   }
   }
   if(compact&&nearestWithoutCaption&&copy){
    // If the text cannot fit, leave the presenter by the pin and label the text beneath the map.
    dock.classList.add('board-copy-docked');
    dock.dataset.location=note.dataset.location;
+   dock.style.setProperty('--caption-dock-x',Math.max(0,Math.min(cx-132,frame.width-265))+'px');
    dock.append(copy);
-   putNote(nearestWithoutCaption,null,text,width,height);
+   putNote(nearestWithoutCaption,null);
    return;
   }
  }
  note.classList.toggle('faces-right',bram.getBoundingClientRect().left<marker.left);
  if(note.parentElement!==dock)dock.append(note);
 
- function putNote(place,caption,text,width,height){
+ function putNote(place,caption,text){
   const {x,y,side}=place;
   note.style.setProperty('--bram-x',x+'px');
   note.style.setProperty('--bram-y',y+'px');
@@ -1064,8 +1078,8 @@ function positionBoardNote(){
   if(caption){
    note.style.setProperty('--bram-text-x',caption.x+'px');
    note.style.setProperty('--bram-text-y',caption.y+'px');
-   note.style.setProperty('--bram-tail-x',Math.max(8,Math.min(x+width/2-caption.x,text.width-8))+'px');
-   note.style.setProperty('--bram-tail-y',Math.max(8,Math.min(y+height*0.21-caption.y-5,text.height-16))+'px');
+   note.style.setProperty('--bram-tail-x',Math.max(8,Math.min(cx-caption.x,text.width-8))+'px');
+   note.style.setProperty('--bram-tail-y',Math.max(8,Math.min(cy-caption.y-5,text.height-16))+'px');
    note.dataset.tail=caption.tail;
   }
   if(note.parentElement!==map)map.append(note);
