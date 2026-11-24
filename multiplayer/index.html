@@ -539,15 +539,32 @@
 .board-team .pin:focus-visible{outline:3px solid #fff;outline-offset:5px}
 .board-note-dock:empty{display:none}
 .board-note-dock{padding:8px 10px;background:#edf4f5}
-.board-note{display:flex;align-items:flex-end;gap:5px;width:max-content;max-width:min(234px,100%);color:#102c45;box-sizing:border-box}
-.world-image>.board-note{position:absolute;z-index:7;pointer-events:none}
-.board-bram{width:clamp(34px,4.1vw,62px)!important;height:auto!important;aspect-ratio:1/1.6;object-fit:contain!important;align-self:flex-end;filter:drop-shadow(0 2px 3px #07244077)}
-.board-note-copy{min-width:0;max-width:147px;display:grid;gap:3px}
+.board-note{display:flex;align-items:center;gap:9px;width:max-content;max-width:100%;color:#102c45;box-sizing:border-box}
+.board-note-dock .board-note{flex-wrap:wrap}
+.board-note-dock.board-copy-docked:has(.board-note-copy:not(:empty))::before{content:attr(data-location);font-weight:750}
+.board-note-dock>.board-note-copy{max-width:none;margin-top:4px}
+.board-note-dock.board-copy-docked:not(:has(.board-brief,.board-impact)){display:none}
+.board-note-dock .board-note::before{content:attr(data-location);font-weight:750;width:100%}
+.world-image>.board-note{position:absolute;inset:0;z-index:7;display:block;width:auto;pointer-events:none}
+.board-bram{display:block;width:var(--bram-width,62px)!important;height:auto!important;aspect-ratio:374/805;object-fit:contain!important;filter:drop-shadow(0 2px 3px #07244077)}
+.board-note-copy{display:grid;width:max-content;max-width:var(--bram-text-width,186px);gap:3px}
+.board-note-copy:empty{display:none}
+.world-image .board-bram{position:absolute;left:var(--bram-x);top:var(--bram-y)}
+.world-image .board-note-copy{position:absolute;left:var(--bram-text-x);top:var(--bram-text-y)}
+.board-note.faces-right .board-bram{transform:scaleX(-1)}
 .board-impact{
  display:block;padding:4px 6px;border-radius:5px;font-size:.73rem;line-height:1.23
 }
 .board-brief{margin:0;padding:7px 8px;border:1px solid #e3c987;border-radius:8px;background:#fff5db;font-size:.76rem;font-weight:700;line-height:1.3}
-.world-image .board-brief{order:-1;box-shadow:0 2px 8px #112f4b44}
+.world-image .board-brief{position:relative;box-shadow:0 2px 8px #112f4b44}
+.world-image .board-brief::after{
+ content:'';position:absolute;width:9px;height:9px;background:#fff5db;border:solid #e3c987;
+ border-width:0 1px 1px 0;
+}
+.board-note[data-tail="left"] .board-brief::after{top:var(--bram-tail-y,10px);left:-6px;transform:rotate(135deg)}
+.board-note[data-tail="right"] .board-brief::after{top:var(--bram-tail-y,10px);right:-6px;transform:rotate(-45deg)}
+.board-note[data-tail="bottom"] .board-brief::after{bottom:-6px;left:var(--bram-tail-x,50%);transform:translateX(-50%) rotate(45deg)}
+.board-note[data-tail="top"] .board-brief::after{top:-6px;left:var(--bram-tail-x,50%);transform:translateX(-50%) rotate(225deg)}
 .board-impacts{display:grid;gap:3px}
 .board-impact{width:fit-content;background:#f8fffb;color:#165e3c;border:1px solid #81bca1;font-weight:750}
 .board-impact.loss{background:#fff4ee;color:#a53120;border-color:#cc8a75}
@@ -592,7 +609,6 @@
 @media(max-width:530px){
  .board-team .focus-maturity .maturity-rows{grid-template-columns:repeat(3,minmax(0,1fr))}
  .board-team .focus-map .world-image{aspect-ratio:1.36}
- .board-note-copy{max-width:125px}
 }
 </style>
 <style>
@@ -920,7 +936,8 @@ function updateBoardIntroduction(){
  if(live)live.textContent='Bram: '+eventIntroduction();
  clearTimeout(boardIntroTimer);
  boardIntroTimer=setTimeout(()=>{
-  document.querySelectorAll('.board-brief').forEach(el=>el.remove());
+  const brief=document.querySelector('.board-note .board-brief,.board-note-dock .board-brief');
+  if(brief)brief.closest('.board-note-copy')?.remove();
   positionBoardNote();
  },8500);
 }
@@ -945,7 +962,7 @@ function boardNote(zone,team){
  if(!zone)return '';
  const impacts=checkScoreChanges(team).filter(change=>change.local!==0);
  const introduction=bramIntroduction();
- return `<aside class="board-note" aria-label="${esc(zone.name)}: actuele gebeurtenis">
+ return `<aside class="board-note" data-location="${esc(zone.name)}" aria-label="${esc(zone.name)}: actuele gebeurtenis">
   <img class="board-bram" src="${window.TYCOON_BRAM}" alt="">
   ${introduction||impacts.length?`<div class="board-note-copy">${introduction}
    ${impacts.length?`<div class="board-impacts" aria-label="Netto-effect van de situatie en gekozen ingreep op deze locatie">${impacts.map(change=>`<span class="board-impact ${change.local<0?'loss':'gain'}">${esc(change.label)} ${signedScore(change.local)}</span>`).join('')}</div>`:''}
@@ -958,32 +975,90 @@ function positionBoardNote(){
  const note=map?.querySelector('.board-note')||dock?.querySelector('.board-note');
  const active=map?.querySelector('.pin.board-active');
  if(!map||!active||!dock||!note)return;
+ const bram=note.querySelector('.board-bram');
+ const dockedCopy=dock.querySelector('.board-note-copy');
+ if(dockedCopy&&!note.contains(dockedCopy))note.append(dockedCopy);
+ dock.classList.remove('board-copy-docked');
+ const copy=note.querySelector('.board-note-copy');
  const frame=map.getBoundingClientRect();
  const marker=active.getBoundingClientRect();
- const {width,height}=note.getBoundingClientRect();
  const cx=(marker.left+marker.right)/2-frame.left;
  const cy=(marker.top+marker.bottom)/2-frame.top;
- const obstacles=[...map.querySelectorAll('.pin,.town,.board-pin-label')].map(node=>node.getBoundingClientRect()).filter(rect=>rect.width&&rect.height);
- const halfX=marker.width/2,halfY=marker.height/2;
- const candidates=[14,32,50].flatMap(gap=>[
-  [cx-halfX-gap-width,cy-height/2],[cx+halfX+gap,cy-height/2],
-  [cx-width/2,cy-halfY-gap-height],[cx-width/2,cy+halfY+gap],
-  [cx-halfX-gap-width,cy-halfY-height],[cx+halfX+gap,cy-halfY-height],
-  [cx-halfX-gap-width,cy+halfY],[cx+halfX+gap,cy+halfY],
- ]);
- const fit=candidates.find(([x,y])=>{
-  if(x<8||y<8||x+width>frame.width-8||y+height>frame.height-8)return false;
+ const obstacles=[...map.querySelectorAll('.pin,.town,.board-pin-label')]
+  .map(node=>node.getBoundingClientRect()).filter(rect=>rect.width&&rect.height);
+ const fits=(x,y,w,h,clearance=6)=>{
+  if(x<8||y<8||x+w>frame.width-8||y+h>frame.height-8)return false;
   const left=x+frame.left,top=y+frame.top;
-  return obstacles.every(rect=>left+width+6<=rect.left||left>=rect.right+6||top+height+6<=rect.top||top>=rect.bottom+6);
- });
- if(fit){
-  note.style.left=fit[0]+'px';
-  note.style.top=fit[1]+'px';
+  return obstacles.every(rect=>left+w+clearance<=rect.left||left>=rect.right+clearance||
+   top+h+clearance<=rect.top||top>=rect.bottom+clearance);
+ };
+ const avatarWidth=Math.max(43,Math.min(82,frame.width*0.082));
+ const captionWidth=Math.max(126,Math.min(180,frame.width*0.23));
+ for(const compact of [false,true]){
+  note.style.setProperty('--bram-width',(compact?Math.max(38,avatarWidth*0.88):avatarWidth)+'px');
+  note.style.setProperty('--bram-text-width',(compact?Math.max(112,captionWidth*0.87):captionWidth)+'px');
+  const {width,height}=bram.getBoundingClientRect();
+  const text=copy?.getBoundingClientRect();
+  // Anchor on Bram's feet so a longer introduction cannot push him away from the pin.
+  const horizontal=[0.25,0.55,0.85,1.15,1.5,1.9,2.3,2.7];
+  const vertical=Array.from({length:31},(_,i)=>(i-12)/10);
+  const places=horizontal.flatMap(shift=>[-1,1].flatMap(side=>vertical.map(offset=>{
+   const dx=side*width*shift;
+   const x=Math.max(8,Math.min(cx+dx-width/2,frame.width-width-8));
+   const y=Math.max(8,Math.min(cy-height*0.83+offset*height,frame.height-height-8));
+   return {x,y,side,distance:Math.hypot(x+width/2-cx,y+height-cy)};
+  }))).sort((a,b)=>a.distance-b.distance);
+  let nearestWithoutCaption;
+  for(const place of places){
+   const {x,y,side}=place;
+   if(!fits(x,y,width,height))continue;
+   let caption;
+   if(text?.height){
+    const gap=9;
+    const outside=side<0?x-text.width-gap:x+width+gap;
+    const inside=side<0?x+width+gap:x-text.width-gap;
+    const head=y+Math.min(26,height*0.21);
+    const clampTextTop=top=>Math.min(Math.max(8,top),frame.height-text.height-8);
+    const candidates=[head-10,head-text.height*0.55,head+text.height*0.45,head-text.height+10,head+height*0.55]
+     .flatMap(top=>[
+      {x:outside,y:clampTextTop(top),tail:side<0?'right':'left'},
+      {x:inside,y:clampTextTop(top),tail:side<0?'left':'right'},
+     ]);
+    for(const left of [x+(width-text.width)/2,x,x+width-text.width]){
+     const tx=Math.max(8,Math.min(left,frame.width-text.width-8));
+     candidates.push({x:tx,y:y-text.height-gap,tail:'bottom'},{x:tx,y:y+height+gap,tail:'top'});
+    }
+    caption=candidates.find(item=>fits(item.x,item.y,text.width,text.height,10));
+    if(!caption){nearestWithoutCaption??=place;continue;}
+   }
+   putNote(place,caption,text,width,height);
+   return;
+  }
+  if(compact&&nearestWithoutCaption&&copy){
+   // If the text cannot fit, leave the presenter by the pin and label the text beneath the map.
+   dock.classList.add('board-copy-docked');
+   dock.dataset.location=note.dataset.location;
+   dock.append(copy);
+   putNote(nearestWithoutCaption,null,text,width,height);
+   return;
+  }
+ }
+ note.classList.toggle('faces-right',bram.getBoundingClientRect().left<marker.left);
+ if(note.parentElement!==dock)dock.append(note);
+
+ function putNote(place,caption,text,width,height){
+  const {x,y,side}=place;
+  note.style.setProperty('--bram-x',x+'px');
+  note.style.setProperty('--bram-y',y+'px');
+  note.classList.toggle('faces-right',side<0);
+  if(caption){
+   note.style.setProperty('--bram-text-x',caption.x+'px');
+   note.style.setProperty('--bram-text-y',caption.y+'px');
+   note.style.setProperty('--bram-tail-x',Math.max(8,Math.min(x+width/2-caption.x,text.width-8))+'px');
+   note.style.setProperty('--bram-tail-y',Math.max(8,Math.min(y+height*0.21-caption.y-5,text.height-16))+'px');
+   note.dataset.tail=caption.tail;
+  }
   if(note.parentElement!==map)map.append(note);
- }else if(note.parentElement!==dock){
-  note.style.removeProperty('left');
-  note.style.removeProperty('top');
-  dock.append(note);
  }
 }
 function mapPanel(team){
