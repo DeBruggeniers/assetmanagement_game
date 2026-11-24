@@ -735,9 +735,200 @@ function evaluationReport(g,t,db){
  if(ev.id===16&&r.choice==='C'&&!(t.levels.O>=3&&t.levels.S>=3))extra.push('Cofinanciering is niet verkregen: de benodigde organisatieontwikkeling voor afstemming met partners ontbrak.');
  return {title:ev.titel,intervention:option?.omschrijving||'Noodmaatregel',context,observations:[...observations,...extra],uncertainty:record?.onzekerheid||'De langetermijneffecten vragen vervolgmonitoring.',actual:{b:r.result.delta.b,l:r.result.delta.l,v:r.result.delta.v,cost:r.result.cost},developmentImpact:r.result.developmentImpact||null,measureTrace:r.result.measureTrace||[],triggeredPriorRisks:r.result.triggeredPriorRisks||[],notes:r.result.notes||[]};
 }
+const CHECK_BEWIJS = {
+  "1A": [
+    "De reparatie herstelde de bediening. De eerdere meldingen geven aanleiding ook de andere hydraulische onderdelen te inspecteren.",
+    "De brug draait weer. De gebruikelijke storingsregistratie geeft voorlopig voldoende zicht op de betrouwbaarheid.",
+    "Dezelfde slijtage komt vaker voor. Vervanging van de volledige installatie heeft daarom de laagste levensduurkosten.",
+    "De brug werkte weer, maar bij de nacontrole bleek naast het gerepareerde onderdeel nog slijtage aanwezig. De kosten van vervanging zijn niet vergeleken."
+  ],
+  "1B": [
+    "De hydrauliek verklaart de storing. De eerste test ondersteunt het herstel, terwijl de opvolging van eerdere signalen aandacht vraagt.",
+    "De functietest bevestigt dat het onderhoudsinterval bij deze brug past. Volg voortaan vooral nieuwe storingen.",
+    "De draagconstructie kan blijven. Daarmee is gericht herstellen ook op lange termijn de voordeligste aanpak.",
+    "De inspectie lokaliseerde de slijtage en de bediening werkte bij de test. Het logboek laat zien dat eerdere signalen zonder inspectie bleven."
+  ],
+  "1C": [
+    "De vervanging heeft slijtage op meerdere plekken aangepakt. Het inspectieschema kan die slijtage bij volgende controles nog missen.",
+    "De vervanging was terecht. De geslaagde test geeft voldoende reden om het oude inspectieschema voort te zetten.",
+    "De aangetroffen slijtage rechtvaardigt preventieve vervanging bij vergelijkbare bruggen op hetzelfde moment.",
+    "Meerdere onderdelen waren versleten. De test zegt iets over deze brug na vervanging. De ontbrekende slijtagecontrole vraagt apart aandacht."
+  ],
+  "2A": [
+    "De lijst kan werk te vroeg én te laat plannen. Controleer uitgevoerde werkzaamheden en recente schade vóór de volgende planningsronde.",
+    "Geef zichtbare schade meer gewicht in de rangschikking. Daarmee komen de onderzochte wegvakken op de juiste plaats.",
+    "Versnel de verwerking van werkbonnen. Daarmee is ook de lage prioriteit van het beschadigde wegvak verklaard.",
+    "Bij het ene wegvak ontbrak uitgevoerd onderhoud, bij het andere was de conditie verouderd. Een andere weging verhelpt die twee bronfouten niet."
+  ],
+  "2B": [
+    "De correcties helpen waar een werkbon beschikbaar is. Voor een wegvak zonder actuele meting blijft de positie voorlopig.",
+    "De verschuiving na de audit rechtvaardigt een lagere prioriteit voor alle wegvakken waarvan een meting ontbreekt.",
+    "De audit maakt de nieuwe rangorde geschikt voor uitvoering. Controle van ontbrekende metingen kan na de aanbesteding volgen.",
+    "Werkbonnen verklaarden enkele verschuivingen. Voor andere vakken vond de audit geen actuele bron waarmee de rangorde te controleren was."
+  ],
+  "2C": [
+    "De gebruikte gegevens verklaarden een deel van de verkeerde volgorde. Spreek af hoe nieuw werk en schade worden geregistreerd.",
+    "De nieuwe lijst bevestigt dat de prioriteitsregels ook bij toekomstige wijzigingen de juiste volgorde zullen geven.",
+    "De dubbele registraties verklaren de verschuiving. Controle op unieke wegvaknummers volstaat voor de volgende lijst.",
+    "De regels bleven gelijk, terwijl zowel dubbeltellingen als ontbrekende onderhoudsbeurten werden gecorrigeerd. Daarna veranderde de volgorde."
+  ],
+  "3A": [
+    "Dezelfde oversteekplaatsen blijven aandacht vragen. Onderzoek daar welke ingreep fietsers eerder zichtbaar maakt.",
+    "De herhaalde meldingen wijzen vooral op een groter meldingsbereik. Geef de campagne langer de tijd voordat de inrichting wordt onderzocht.",
+    "De schouw geeft voldoende grond om de volledige route opnieuw in te richten volgens één oversteekontwerp.",
+    "De schouw bevestigde een zichtprobleem op de gemelde plekken. Welke fysieke ingreep daar het beste werkt, is nog niet beproefd."
+  ],
+  "3B": [
+    "De aangepaste kruispunten laten een gunstig eerste resultaat zien. Controleer of dat aanhoudt en onderzoek de overige oversteken apart.",
+    "De afname op de aangepaste kruispunten rechtvaardigt dezelfde inrichting op de hele route zonder verdere plaatselijke metingen.",
+    "De conflicten op de overige kruispunten wijzen op verplaatsing van het probleem door de ingreep.",
+    "Op de aangepaste plekken verbeterde het zicht en werden minder conflicten gezien. Er is geen meting die aantoont dat conflicten naar elders verhuisden."
+  ],
+  "3C": [
+    "De gescheiden rijlijnen werken bij de eerste schouw zoals bedoeld. Volg of het voordeel bij ander verkeersaanbod aanhoudt.",
+    "De eerste schouw laat zien dat de veiligheidswinst over de levensduur opweegt tegen de omrijhinder tijdens aanleg.",
+    "De omrijroute kan de afname verklaren. Een vergelijking van rijlijnen voegt daarom weinig toe aan de evaluatie.",
+    "De schouw laat concreet zien waar verkeersstromen elkaar niet meer kruisen. De duur van de winst en de verhouding tot de hinder zijn nog niet gemeten."
+  ],
+  "6A": [
+    "De boete heeft het verschil over openstaande meldingen niet opgelost. Maak eerst afspraken over afsluiten en bijsturen.",
+    "De openstaande meldingen wijzen op te weinig financiële prikkel. Een hogere volgende boete ligt het meest voor de hand.",
+    "De lijsten verschillen vooral administratief. Pas de telling aan en behandel de achterstand als afgehandeld.",
+    "Partijen hanteren verschillende definities en niemand heeft de opvolging toegewezen gekregen. Uit de lijst blijkt niet hoeveel werk feitelijk klaar is."
+  ],
+  "6B": [
+    "Het gezamenlijke overzicht maakte achterstanden eerder zichtbaar. Kijk de komende termijnen of afgesproken herstel ook wordt uitgevoerd.",
+    "De ingeplande herstelacties tonen dat de aannemer de afgesproken prestatie inmiddels structureel haalt.",
+    "Het eerdere beeld van achterstand kwam vooral door verschillende definities. Bijsturing op uitvoering kan worden afgebouwd.",
+    "Bij de eerste controle zijn concrete acties ingepland. De uitvoering en de prestaties over meerdere termijnen moeten nog blijken."
+  ],
+  "6C": [
+    "De overdracht legt een probleem met lijsten en regie bloot. Beoordeel de nieuwe uitvoerder zodra de werkafspraken in gebruik zijn.",
+    "De moeizame overname laat zien dat de nieuwe uitvoerder extra capaciteit nodig heeft om het contract te kunnen halen.",
+    "De verschillen tussen de lijsten verklaren de eerdere achterstand. Na samenvoegen kan de prestatie als hersteld gelden.",
+    "De nieuwe uitvoerder kreeg verschillende lijsten. Zonder gedeelde voortgangsafspraken kun je de prestaties van de nieuwe uitvoerder nog niet beoordelen."
+  ],
+  "7A": [
+    "De brug werkt weer, maar de slijtage naast de reparatie maakt een vergelijking van doorrepareren en renoveren zinvol.",
+    "De draagconstructie kan voorlopig mee. Daarmee is telkens het defecte onderdeel repareren over de resterende levensduur het voordeligst.",
+    "De slijtage naast de reparatie maakt volledige brugvervanging op korte termijn de best onderbouwde keuze.",
+    "Er is aanvullende hydraulische slijtage gevonden. De constructie vraagt geen spoedingreep en de meerjarige kosten van de alternatieven zijn nog onbekend."
+  ],
+  "7B": [
+    "De eerste bedieningstests ondersteunen renovatie van de hydrauliek met behoud van de constructie. Volg storingen en kosten over meerdere jaren.",
+    "De geslaagde bedieningstests tonen dat renovatie over de hele levensduur goedkoper uitvalt dan vervanging.",
+    "Het behoud van de constructie bewijst dat doorgaan met losse hydraulische reparaties dezelfde betrouwbaarheid had opgeleverd.",
+    "De inspectie en bedieningstests ondersteunen de technische keuze. Ze meten geen levensduurkosten en testen evenmin hoe losse reparaties zouden presteren."
+  ],
+  "7C": [
+    "De nieuwe brug functioneert. De resterende gebruiksjaren van de oude constructie horen wel thuis in de vergelijking met renovatie.",
+    "De goede werking bij oplevering rechtvaardigt de langere afsluiting ook vanuit de levensduurkosten.",
+    "De resterende gebruiksjaren van de oude constructie tonen dat losse reparaties voldoende waren geweest.",
+    "De hydrauliek was versleten en de oude constructie had nog gebruiksjaren. Uit de oplevering volgt geen sluitende vergelijking van kosten of betrouwbaarheid."
+  ],
+  "9A": [
+    "Het pompen herstelde de doorgang. Onderzoek afvoer én berging om te bepalen waar een volgende bui weer problemen geeft.",
+    "De verstopte roosters verklaren de overlast. Na reiniging is extra waterberging op het lage wegdeel overbodig.",
+    "De beperkte berging verklaart de overlast. Houd de pompen gereed en laat het onderhoud aan de roosters volgens planning verlopen.",
+    "Na het pompen bleven twee knelpunten zichtbaar. De schouw bepaalde niet hoeveel elk knelpunt tijdens deze bui bijdroeg."
+  ],
+  "9B": [
+    "Reiniging hielp op de aangepakte plekken. Het laagste wegdeel kan bij een zwaardere bui nog steeds vollopen.",
+    "De snellere afvoer rechtvaardigt dezelfde onderhoudsaanpak als volledige oplossing voor het laagste wegdeel.",
+    "De beperkte berging maakt het onwaarschijnlijk dat de reiniging betekenis had voor de wateroverlast.",
+    "De afvoer verbeterde plaatselijk. Het laagste wegdeel heeft nog dezelfde bergingsruimte en het gedrag bij zware buien is niet vastgesteld."
+  ],
+  "9C": [
+    "De afvoer en berging werken samen bij de opleverproef. Volg bij zware buien hoeveel water alsnog op de weg komt.",
+    "De opleverproef laat zien dat de nieuwe berging ook de zwaarste maatgevende bui kan opvangen.",
+    "De vrijgemaakte afvoer verklaart het gunstige resultaat. De extra berging kan bij toekomstig onderhoud een lagere prioriteit krijgen.",
+    "Water bereikte de berging via de afvoer. De proef bepaalde noch de restkans bij zware buien, noch het afzonderlijke aandeel van beide ingrepen."
+  ],
+  "11A": [
+    "De ontbrekende regels ontstaan bij de overdracht. Vergelijk bron en dashboard voordat je op basis van het dashboard onderhoud uitstelt.",
+    "De zichtbare inspecties gebruiken dezelfde criteria. Daardoor is het dashboard ondanks ontbrekende regels representatief voor het areaal.",
+    "De bron bevat de ontbrekende gebreken. Daarmee is ook de beoordeling van hun ernst voldoende gecontroleerd.",
+    "Dezelfde inspecties zijn teruggevonden in de bron en ontbreken na overdracht. De vergelijking toetste geen representativiteit of inhoudelijke juistheid van inspecties."
+  ],
+  "11B": [
+    "Het herstel verklaart het verschil in de gecontroleerde regels. Gebruik een bronvergelijking om latere uitval van gegevens op te merken.",
+    "De overeenstemming na herstel bevestigt ook dat de inspecteurs de ernst van de gebreken juist hebben beoordeeld.",
+    "De herstelde koppeling maakt een extra controle bij een volgende wijziging van het bronbestand overbodig.",
+    "De regels verschenen toen de koppeling werd hersteld, bij dezelfde criteria. Dat toetst de overdracht voor deze vergelijking."
+  ],
+  "11C": [
+    "De vernieuwde overdracht geeft de gecontroleerde objecten vollediger weer. Herhaal de vergelijking bij wijzigingen in de gegevensstroom.",
+    "De extra gebreken in het dashboard wijzen op een verslechtering van de toestand sinds de vorige rapportage.",
+    "De herinrichting bevestigt dat de onderhoudsnormen voor alle objecten goed aansluiten bij de werkelijke toestand.",
+    "Al geregistreerde inspecties werden weer zichtbaar zonder wijziging van normen. De vergelijking onderzocht de volledigheid, niet de ontwikkeling van de conditie."
+  ],
+  "12A": [
+    "De onvolledige werkbonnen bemoeilijken toetsing. Met deze aanpak is de bruikbaarheid van waarschuwingen nog een open vraag.",
+    "De ontbrekende storingsoorzaken geven voldoende grond om voorspellend onderhoud voor deze installaties af te schrijven.",
+    "De bestaande inspecties en werkbonnen bieden voldoende basis om een tijdsbesparing door voorspellen in te boeken.",
+    "Er zijn geen waarschuwingen beproefd. De werkbonnen laten een beperking in de toetsing zien en geven geen gemeten baten of mislukkingen van het systeem."
+  ],
+  "12B": [
+    "Test de opvolging en tel ook gemiste storingen voordat jullie besluiten tot bredere inzet.",
+    "Breid uit bij installaties met een volledige historie. Daar geven de gecontroleerde waarschuwingen voldoende zekerheid over de tijdwinst.",
+    "Beleg de opvolging bij één monteur. Daarmee is het grootste obstakel voor betrouwbare voorspellingen weggenomen.",
+    "Sommige signalen waren controleerbaar, andere vroegen vergeefs tijd en één bleef liggen. Gemiste storingen en netto tijdwinst zijn nog niet gemeten."
+  ],
+  "12C": [
+    "Beoordeel per objectgroep of signalen worden opgevolgd en hoeveel tijd dat netto kost. De uitrol zelf geeft daarover geen uitsluitsel.",
+    "Gebruik het aantal aan onderhoud gekoppelde waarschuwingen als bewijs voor een netto besparing op onderhoudstijd.",
+    "Wijs voor elk signaal een verantwoordelijke aan. Daarmee kan de betrouwbaarheid voor alle objectgroepen gelijk worden ingeschat.",
+    "Opvolging maakt een waarschuwing bruikbaar voor het werk. Betrouwbaarheid en tijdwinst moeten nog per objectgroep worden gemeten."
+  ],
+  "15A": [
+    "De dubbele inzet wijst op gebrekkige prioritering tussen incidenten. Breng de inzet in beeld vóór je extra ploegen aanvraagt.",
+    "De onbezet gebleven verbinding toont dat het aantal beschikbare ploegen voor deze incidenten ontoereikend was.",
+    "De dubbel bezette verbinding kreeg kennelijk de hoogste prioriteit. Houd daar bij een volgend incident standaard twee ploegen beschikbaar.",
+    "Er waren twee ploegen op één plek terwijl een urgentere verbinding wachtte. Dat toont een verdelingsprobleem. Een absoluut capaciteitstekort is daarmee nog niet vastgesteld."
+  ],
+  "15B": [
+    "Het gezamenlijke overzicht hielp een ploeg vrij te maken. Voor herstel met externe beheerders blijven inzetafspraken nodig.",
+    "Het gezamenlijke overzicht biedt de meldkamer voldoende zekerheid om ook de inzet van externe ploegen in te plannen.",
+    "De wachttijd bij externe beheerders toont dat het overzicht weinig verschil maakte voor de inzet van de eigen ploegen.",
+    "De eigen ploeg kon aantoonbaar anders worden ingezet. De externe inzet hing nog af van bevestiging door de beheerder."
+  ],
+  "15C": [
+    "Het overleg maakte conflicten in de inzet zichtbaar. Toets ook wie bij een wijziging beslist en de ploegen informeert.",
+    "Het gezamenlijke beeld toont dat de partners voor een volgende crisis over voldoende uitvoeringscapaciteit beschikken.",
+    "Stem de aanrijroutes vooraf af. Daarmee is ook de prioriteit tussen twee gelijktijdige afsluitingen voldoende geregeld.",
+    "Partners zagen waar werkzaamheden elkaar hinderden. Een vrij aanrijpad bepaalt nog niet wie voorrang krijgt bij schaarse inzet."
+  ],
+  "16A": [
+    "De afbakening maakt later extra straatwerk nodig. Onderzoek de planning met de gemeente voordat je een volgende combinatie inboekt.",
+    "De gemiste fietsaansluiting toont dat ook water en groen tijdens dezelfde afsluiting uitvoerbaar waren geweest.",
+    "De afzonderlijke planning beperkt het risico voor het wegwerk. Daarmee is opnieuw openbreken financieel de gunstigste aanpak.",
+    "Voor de fietsaansluiting is extra werk nodig. Voor water en groen stonden planning en uitvoerbaarheid nog niet vast."
+  ],
+  "16B": [
+    "Het combineren bespaarde een tweede afsluiting voor de fietsaansluiting. Meet na ingebruikname wat er met het fietsgebruik gebeurt.",
+    "Het opgeloste aansluitknelpunt geeft voldoende basis om een stijging van het fietsgebruik als behaald resultaat te melden.",
+    "De gezamenlijke afsluiting bevestigt dat waterberging en groen binnen dezelfde opdracht hadden kunnen worden opgeleverd.",
+    "De straat hoefde voor de aansluiting één keer open. Het routegebruik moet nog worden gemeten en water en groen vielen buiten de opdracht."
+  ],
+  "16C": [
+    "Het ontwerp maakt gezamenlijke uitvoering mogelijk. Beoordeel financiering en toekomstig beheer aan de hand van de gemaakte afspraken.",
+    "De gereserveerde ruimte in het ontwerp geeft voldoende grond om de wateropvang al als gerealiseerde prestatie te tellen.",
+    "Als de partijen hun bijdrage aan de aanleg hebben geregeld, volgt daaruit ook wie het groen en de wateropvang gaat beheren.",
+    "Het ontwerp toont welke functies samen passen. Uitvoering, financiële bijdragen en beheer zijn afzonderlijk te bevestigen."
+  ]
+};
+function checkCase(ev,r){
+ if(!r || (r.answer!==undefined && !r.checkBewijs))return null;
+ return CHECK_BEWIJS[ev.id+r.choice]||null;
+}
+function checkLabels(ev,r){
+ return checkCase(ev,r)?.slice(0,3)||CHECK[ev.id];
+}
 function evaluationFeedback(g,t,db){
  const ev=getEvent(g,db),answer=t.events[ev?.id]?.answer;
  if(answer===undefined)return null;
+ const item=checkCase(ev,t.events[ev.id]);
+ if(item)return item[3];
  return (db.evaluatie_feedback||[]).find(x=>x.gebeurtenis_id===ev.id&&x.antwoord===answer)?.tekst||ev.verborgen_werkelijkheid||'';
 }
 function applyProjectBenefits(t,e,db,delta,cost,notes){
@@ -1019,7 +1210,7 @@ else if(act.type==='plan'){
  record(g,`${t.name} heeft het ontwikkelplan ingediend.`);
 }
 else if(act.type==='do'){req(!leader&&phase==='DO','Do is niet beschikbaar.');const r=t.events[ev.id]||(t.events[ev.id]={});req(!r.choice,'De interventie is al vastgelegd.');const choices=options(g,t,db),choice=String(act.choice);req(choices.some(x=>x.key===choice)||(choice==='N'&&choices.every(x=>!x.affordable)),'Ongeldige interventie.');req(choice==='N'||t.reserve-effect(g,t,ev,choice,db).cost>=-2,'Onvoldoende financiële reserve.');r.choice=choice;record(g,`${t.name} heeft een interventie gekozen.`);}
-else if(act.type==='check'){req(!leader&&phase==='CHECK','Check is niet beschikbaar.');const r=t.events[ev.id];req(r?.result,'De resultaten zijn nog niet beschikbaar.');req(r.answer===undefined,'De analyse is al vastgelegd.');req([0,1,2].includes(Number(act.answer)),'Kies een geldige verklaring.');r.answer=Number(act.answer);if(r.answer===0&&t.levels.E>=3&&t.vpBonusYear<VP_BONUS_PER_YEAR&&t.vp<VP_MAX){t.vp=Math.min(VP_MAX,t.vp+1);t.vpBonusYear++;r.bonusVP=1;}else{r.bonusVP=0;r.bonusBlocked=r.answer===0&&t.levels.E>=3&&t.vp>=VP_MAX;}record(g,`${t.name} heeft de Check-analyse afgerond.`);}
+else if(act.type==='check'){req(!leader&&phase==='CHECK','Check is niet beschikbaar.');const r=t.events[ev.id];req(r?.result,'De resultaten zijn nog niet beschikbaar.');req(r.answer===undefined,'De analyse is al vastgelegd.');req([0,1,2].includes(Number(act.answer)),'Kies een geldige verklaring.');if(checkCase(ev,r))r.checkBewijs=true;r.answer=Number(act.answer);if(r.answer===0&&t.levels.E>=3&&t.vpBonusYear<VP_BONUS_PER_YEAR&&t.vp<VP_MAX){t.vp=Math.min(VP_MAX,t.vp+1);t.vpBonusYear++;r.bonusVP=1;}else{r.bonusVP=0;r.bonusBlocked=r.answer===0&&t.levels.E>=3&&t.vp>=VP_MAX;}record(g,`${t.name} heeft de Check-analyse afgerond.`);}
 else if(act.type==='act'){
  req(!leader&&phase==='ACT','Act is niet beschikbaar.');
  const r=t.events[ev.id];req(r?.answer!==undefined,'Eerst de Check-analyse afronden.');req(!r.act,'Act is al afgerond.');
@@ -1081,8 +1272,8 @@ function clientView(g,actor,db){
  if(teamData)teamData.activeImprovements=activeImprovements(g,me,db);
  return {year:g.year,gameYears:GAME_YEARS,eventSequence:EVENT_SEQUENCE.slice(),eventIndex:0,phase:g.phase,finished:g.finished,revision:g.revision,teams:all,me:teamData,fullTeams:actor==='leider'?JSON.parse(JSON.stringify(g.teams)):undefined,
   event:ev?{id:ev.id,year:g.year,title:ev.titel,situation:ev.situatie,secret:actor==='leider'?ev.verborgen_werkelijkheid:undefined}:null,
-  info:me&&g.phase!=='PLAN'?info(g,me,db):[],decisionInformation:me&&g.phase==='DO'?decisionInformation(g,me,db):null,checkInsights:me&&g.phase==='CHECK'?projectCheckInsights(g,me,db):[],checkReport:me&&g.phase==='CHECK'?evaluationReport(g,me,db):null,checkFeedback:me&&g.phase==='CHECK'?evaluationFeedback(g,me,db):null,actReview:me&&g.phase==='ACT'?{choiceName:db.besluitopties.find(x=>x.gebeurtenis_id===ev?.id&&x.keuze===me.events[ev?.id]?.choice)?.omschrijving||'Noodmaatregel',observations:evaluationReport(g,me,db)?.observations?.slice(0,2)||[],feedback:evaluationFeedback(g,me,db),result:me.events[ev?.id]?.result||null,correct:me.events[ev?.id]?.answer===0}:null,options:me&&g.phase==='DO'?options(g,me,db):[],actOptions:me&&g.phase==='ACT'?actOptions(g,me,db):[],
-  checkChoices:ev&&g.phase==='CHECK'?CHECK[ev.id].map((label,i)=>({value:i,label})).sort((a,b)=>(a.value+ev.id)%3-(b.value+ev.id)%3):[],
+  info:me&&g.phase!=='PLAN'?info(g,me,db):[],decisionInformation:me&&g.phase==='DO'?decisionInformation(g,me,db):null,checkInsights:me&&g.phase==='CHECK'?projectCheckInsights(g,me,db):[],checkReport:me&&g.phase==='CHECK'?evaluationReport(g,me,db):null,checkFeedback:me&&g.phase==='CHECK'?evaluationFeedback(g,me,db):null,actReview:me&&g.phase==='ACT'?{conclusion:checkLabels(ev,me.events[ev.id])[me.events[ev.id]?.answer],choiceName:db.besluitopties.find(x=>x.gebeurtenis_id===ev?.id&&x.keuze===me.events[ev?.id]?.choice)?.omschrijving||'Noodmaatregel',observations:evaluationReport(g,me,db)?.observations?.slice(0,2)||[],feedback:evaluationFeedback(g,me,db),result:me.events[ev?.id]?.result||null,correct:me.events[ev?.id]?.answer===0}:null,options:me&&g.phase==='DO'?options(g,me,db):[],actOptions:me&&g.phase==='ACT'?actOptions(g,me,db):[],
+  checkChoices:ev&&g.phase==='CHECK'?checkLabels(ev,me?.events[ev.id]).map((label,i)=>({value:i,label})).sort((a,b)=>(a.value+ev.id)%3-(b.value+ev.id)%3):[],
   feed:g.feed.slice(0,18),selfStatus:me?status(g,me):null};
 }
 return {decisionInformation,projectDoInsights,projectCheckInsights,evaluationReport,evaluationFeedback,ownedProjects,VERSION,GAME_YEARS,EVENT_SEQUENCE,eventId,eventYear,VP_PER_EVENT,VP_CARRY_MAX,VP_MAX,VP_BONUS_PER_YEAR,grantVP,upgradeGame,PHASES,TRACKS,COST,CHECK,FAMILIES,GOALS,newGame,apply,clientView,info,effect,options,actOptions,status,finalScore,projectCost,activeImprovements,riskTitle,availableLearning};
@@ -1560,7 +1751,7 @@ function checkUI(t){
  }
  const facts=(evidence.length?evidence:context).slice(0,2);
  const pending=r.answer===undefined;
- const body=`<h3>Welke verklaring past het best bij de bevindingen?</h3>
+ const body=`<h3>Welke conclusie kunnen jullie met deze bevindingen het beste onderbouwen?</h3>
   ${facts.length?`<details class="phase-details" data-phase-detail="findings" open><summary>Belangrijkste bevindingen</summary>${list(facts)}</details>`:''}
   <div class="option-grid compact-options">${v.checkChoices.map(a=>`<label class="option ${(pending?drafts.check:r.answer)===a.value?'picked':''}"><input type="radio" name="check" data-board-focus="check-${a.value}" value="${a.value}" onchange="chooseCheck(${a.value})" ${(pending?drafts.check:r.answer)===a.value?'checked':''} ${pending?'':'disabled'}><span>${esc(a.label)}</span></label>`).join('')}</div>
   ${pending?'':`<div class="result-feedback ${r.answer===0?'good':'warn'}"><strong>${r.answer===0?'Jullie conclusie past bij de bevindingen.':'De gekozen conclusie past minder goed bij de gegevens.'}</strong><p>${esc(v.checkFeedback||v.event.revealedReality||'De evaluatie is afgerond.')}</p>${r.bonusVP?`<p><b>+${r.bonusVP} AP verdiend.</b></p>`:''}</div>`}`;

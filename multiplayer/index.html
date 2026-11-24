@@ -1230,7 +1230,7 @@ function checkUI(t){
  }
  const facts=(evidence.length?evidence:context).slice(0,2);
  const pending=r.answer===undefined;
- const body=`<h3>Welke verklaring past het best bij de bevindingen?</h3>
+ const body=`<h3>Welke conclusie kunnen jullie met deze bevindingen het beste onderbouwen?</h3>
   ${facts.length?`<details class="phase-details" data-phase-detail="findings" open><summary>Belangrijkste bevindingen</summary>${list(facts)}</details>`:''}
   <div class="option-grid compact-options">${v.checkChoices.map(a=>`<label class="option ${(pending?drafts.check:r.answer)===a.value?'picked':''}"><input type="radio" name="check" data-board-focus="check-${a.value}" value="${a.value}" onchange="chooseCheck(${a.value})" ${(pending?drafts.check:r.answer)===a.value?'checked':''} ${pending?'':'disabled'}><span>${esc(a.label)}</span></label>`).join('')}</div>
   ${pending?'':`<div class="result-feedback ${r.answer===0?'good':'warn'}"><strong>${r.answer===0?'Jullie conclusie past bij de bevindingen.':'De gekozen conclusie past minder goed bij de gegevens.'}</strong><p>${esc(v.checkFeedback||v.event.revealedReality||'De evaluatie is afgerond.')}</p>${r.bonusVP?`<p><b>+${r.bonusVP} AP verdiend.</b></p>`:''}</div>`}`;
