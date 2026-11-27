@@ -466,6 +466,7 @@ button.maturity-row{font:inherit;color:inherit;background:white;text-align:left;
  outline-offset:3px;
 }
 .team-picker{border:0;margin:0 0 1rem;padding:0;min-width:0}
+.final-team-logo{width:clamp(38px,4vw,52px);height:auto;vertical-align:middle;margin-inline-end:.55rem;object-fit:contain}
 .playing-team-logo{display:block;object-fit:contain;flex:none;width:clamp(32px,3vw,42px);height:auto;aspect-ratio:1}
 .team-picker legend{font-size:clamp(1.35rem,2vw,2rem);line-height:1.1;font-weight:800;margin-bottom:.65rem}
 .team-picker #role{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
@@ -1341,15 +1342,19 @@ function taskPanel(t){
  const content=v.finished?finalPanel():v.phase==='PLAN'?planUI(t):v.phase==='DO'?doUI(t):v.phase==='CHECK'?checkUI(t):actUI(t);
  return `<section class="task task-fixed${legacy?'':' phase-panel'}" id="task" data-taskkey="${v.year}-${v.event?.id||0}-${v.phase}">${heading}${content}</section>`;
 }
-function finalPanel(){let ranks=[...v.teams].sort((a,b)=>b.final-a.final);return `<div class="final-panel"><h2>Eindstand · Jaar ${v.year}</h2><p>De eindscore houdt rekening met maatschappelijke prestaties, financiële reserves en openstaande risico’s.</p><ol>${ranks.map(t=>`<li><b>${esc(t.name)}</b> · ${f1(t.final)} punten<div class="small">Bereikbaarheid <b>${esc(t.b)}</b> · Leefbaarheid <b>${esc(t.l)}</b> · Veiligheid <b>${esc(t.v)}</b></div></li>`).join('')}</ol></div>`;}
+function finalTeamLogo(team){
+ const id=Number(team.id);
+ return [1,2,3,4].includes(id)?`<img class="final-team-logo" src="./assets/team-${id}.webp" alt="" width="52" height="52">`:'';
+}
+function finalPanel(){let ranks=[...v.teams].sort((a,b)=>b.final-a.final);return `<div class="final-panel"><h2>Eindstand · Jaar ${v.year}</h2><p>De eindscore houdt rekening met maatschappelijke prestaties, financiële reserves en openstaande risico’s.</p><ol>${ranks.map(t=>`<li>${finalTeamLogo(t)}<b>${esc(t.name)}</b> · ${f1(t.final)} punten<div class="small">Bereikbaarheid <b>${esc(t.b)}</b> · Leefbaarheid <b>${esc(t.l)}</b> · Veiligheid <b>${esc(t.v)}</b></div></li>`).join('')}</ol></div>`;}
 function teamHome(){const t=v.me;if(!t)return '';const rank=[...v.teams].sort((a,b)=>b.score-a.score).findIndex(x=>x.id===t.id)+1;
 return `<div class="team-wrap board-team" style="--team:${teamColors[t.id-1]}">${scores(t,rank)}<div class="team-main-row">${v.phase==='PLAN'?`<aside class="focus-maturity">${maturity(t)}</aside>`:''}<div class="focus-map">${mapPanel(t)}</div><div class="focus-action" aria-label="Actuele vraag en toelichting">${taskPanel(t)}</div>${v.phase!=='PLAN'?`<aside class="focus-maturity">${maturity(t)}</aside>`:''}</div>${resources(t)}</div>`;}
 let logYear=0,logTeam=0,finishedOpened=false;
 function leaderPage(title,body){
  return `<main class="guide"><div class="guide-title"><h1>${title}</h1><button class="btn secondary" onclick="exportGame()">Exporteren</button></div>${body}<footer><button class="small-btn" onclick="restart()">Nieuw spel</button></footer></main>`;
 }
-function leaderTable(headers,rows,label){
- return `<div class="guide-scroll" tabindex="0" aria-label="${label}"><table><thead><tr>${headers.map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${rows.map(cells=>`<tr>${cells.map((cell,i)=>i?`<td>${esc(cell)}</td>`:`<th scope="row">${esc(cell)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
+function leaderTable(headers,rows,label,rowTeams=[]){
+ return `<div class="guide-scroll" tabindex="0" aria-label="${label}"><table><thead><tr>${headers.map(h=>`<th scope="col">${h}</th>`).join('')}</tr></thead><tbody>${rows.map((cells,rowIndex)=>`<tr>${cells.map((cell,i)=>i?`<td>${esc(cell)}</td>`:`<th scope="row">${rowTeams[rowIndex]?finalTeamLogo(rowTeams[rowIndex]):''}${esc(cell)}</th>`).join('')}</tr>`).join('')}</tbody></table></div>`;
 }
 function guideLive(){
  const waiting=v.teams.filter(t=>t.ready!=='gereed'),ready=v.teams.length-waiting.length;
@@ -1368,7 +1373,7 @@ function guideLive(){
 function leaderResults(){
  const cols=['Team',v.finished?'Eindscore':'Maatschappelijke waarde','Bereikbaarheid','Leefbaarheid','Veiligheid','Reserve','Volwassenheid','Open risico’s'];
  const teams=v.teams.slice().sort((a,b)=>v.finished?b.final-a.final:0);
- return leaderPage(v.finished?'Eindresultaten':'Resultaten',`<p>${v.finished?'Spel afgerond · ':''}Jaar ${v.year}</p><section class="guide-card guide-scores">${leaderTable(cols,teams.map(t=>[t.name,f1(v.finished?t.final:t.score),t.b,t.l,t.v,money(t.reserve),f1(t.maturity),t.openRisks]),'Teamscores')}</section>${teamYearDashboard()}`);
+ return leaderPage(v.finished?'Eindresultaten':'Resultaten',`<p>${v.finished?'Spel afgerond · ':''}Jaar ${v.year}</p><section class="guide-card guide-scores">${leaderTable(cols,teams.map(t=>[t.name,f1(v.finished?t.final:t.score),t.b,t.l,t.v,money(t.reserve),f1(t.maturity),t.openRisks]),'Teamscores',v.finished?teams:[])}</section>${teamYearDashboard()}`);
 }
 function leaderLog(){
  const feed=v.feed.map(entry=>{
@@ -1434,7 +1439,7 @@ window.advance=()=>{
 };window.restart=()=>{if(confirm('Nieuw spel starten? Alle resultaten en keuzes gaan verloren.'))send('reset');};window.renameTeam=i=>send('rename',{team:i,name:document.getElementById('name'+i).value});
 window.exportGame=async()=>{try{const r=await fetch(api('/api/export'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:actor,pin})});const out=await r.json();if(!r.ok)throw new Error(out.error||'Export mislukt');const b=new Blob([JSON.stringify(out,exportPointTerms,2)],{type:'application/json'}),url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='noordzeeland-draait-door-spelstatus.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(e){toast(e.message,true);}};
 
-function results(){return `<div class="content-page"><h1>Vergelijk de teams</h1><p>De maatschappelijke waarde is de gewogen score voor bereikbaarheid, leefbaarheid en veiligheid. De eindscore bevat ook financiële en risicocorrecties.</p><div class="compare-grid">${v.teams.map(t=>`<article class="comparison" style="--team:${teamColors[t.id-1]}"><h2>${esc(t.name)}</h2><strong class="compare-score">${f1(v.finished?t.final:t.score)}</strong><div class="compare-metrics">${[['Bereikbaarheid',t.b],['Leefbaarheid',t.l],['Veiligheid',t.v]].map(([n,x])=>`<div><label>${n} <b>${x}</b></label><div class="bar-rail"><i style="width:${x}%"></i></div></div>`).join('')}</div><p>Reserve ${money(t.reserve)} · Volwassenheid ${f1(t.maturity)} · ${t.openRisks} open risico’s</p></article>`).join('')}</div>${v.finished?finalPanel():''}</div>`;}
+function results(){return `<div class="content-page"><h1>Vergelijk de teams</h1><p>De maatschappelijke waarde is de gewogen score voor bereikbaarheid, leefbaarheid en veiligheid. De eindscore bevat ook financiële en risicocorrecties.</p><div class="compare-grid">${v.teams.map(t=>`<article class="comparison" style="--team:${teamColors[t.id-1]}"><h2>${v.finished?finalTeamLogo(t):''}${esc(t.name)}</h2><strong class="compare-score">${f1(v.finished?t.final:t.score)}</strong><div class="compare-metrics">${[['Bereikbaarheid',t.b],['Leefbaarheid',t.l],['Veiligheid',t.v]].map(([n,x])=>`<div><label>${n} <b>${x}</b></label><div class="bar-rail"><i style="width:${x}%"></i></div></div>`).join('')}</div><p>Reserve ${money(t.reserve)} · Volwassenheid ${f1(t.maturity)} · ${t.openRisks} open risico’s</p></article>`).join('')}</div>${v.finished?finalPanel():''}</div>`;}
 function history(){let lines=v.me?v.me.history:v.fullTeams.flatMap(x=>x.history.map(h=>({...h,team:x.name})));lines=lines.slice().reverse();return `<div class="content-page"><h1>Besluiten en resultaten</h1><p>Overzicht van de gemaakte keuzes. Zo zie je hoe eerdere beslissingen doorwerken in de volgende jaren.</p><div class="history-list">${lines.length?lines.map(h=>`<div><b>Jaar ${h.year}${h.event?' · Gebeurtenis '+h.event:''} · ${esc(pointTerms(h.stage))}</b>${h.team?' · '+esc(h.team):''}<p>${h.stage==='PLAN'?'Ontwikkelprojecten: '+((h.picks||[]).map(p=>p.naam||DB.ontwikkelprojecten?.find(pr=>pr.id===p.projectId)?.naam||p.code).join(', ')||'geen')+'.'+(h.learningDiscount?' 1 OF korting dankzij eerdere evaluatie.':''):h.stage==='DO'?'Interventie '+h.choice+'. Verandering B '+sign(h.result.delta.b)+', L '+sign(h.result.delta.l)+', V '+sign(h.result.delta.v)+'.':h.stage==='OP'?'Ontwikkel Fiches: '+h.granted+' nieuwe OF, '+h.carry+' meegenomen. Saldo '+h.total+' OF.':h.stage==='VP'?'Actie Fiches: '+h.granted+' nieuwe AF, '+h.carry+' meegenomen. Saldo '+h.total+' AF.':h.stage==='JAAR'?'Jaarlijkse achteruitgang B −'+h.decay.b+', L −'+h.decay.l+', V −'+h.decay.v+'. Beperkt door gerichte Do/Act-maatregelen: B '+h.avoided.b+', L '+h.avoided.l+', V '+h.avoided.v+'.':h.stage==='CORRECTIE'?esc(pointTerms(h.description||'')):'Vervolgmaatregelen: '+((h.labels||h.keys||[]).join(', ')||'geen')+'.'+(h.outcomes?.length?' Effecten: '+esc(h.outcomes.map(pointTerms).join(' ')):'')}</p></div>`).join(''):'<p>Er zijn nog geen besluiten vastgelegd.</p>'}</div></div>`;}
 window.setView=x=>{if(x==='game'&&view!=='game'){taskPane='';planFocus='';}view=x;render();};
 function fitTaskToViewport(){
