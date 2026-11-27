@@ -447,7 +447,7 @@ button.maturity-row{font:inherit;color:inherit;background:white;text-align:left;
  font-size:clamp(1rem,1.27vw,1.35rem);
  font-weight:800;
 }
-.game-start__panel select,.game-start__panel input{
+.game-start__panel input#pin{
  box-sizing:border-box;
  display:block;
  width:100%;
@@ -465,6 +465,18 @@ button.maturity-row{font:inherit;color:inherit;background:white;text-align:left;
  outline:3px solid #246da4;
  outline-offset:3px;
 }
+.team-picker{border:0;margin:0 0 1rem;padding:0;min-width:0}
+.team-picker legend{font-weight:800;margin-bottom:.5rem}
+.team-picker #role{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
+.team-picker .role-choice{position:relative;cursor:pointer;margin:0;font-size:.85rem}
+.role-choice input{position:absolute;left:.4rem;top:.4rem;accent-color:#103858}
+.role-choice span{display:grid;justify-items:center;align-content:center;text-align:center;gap:.2rem;height:100%;box-sizing:border-box;padding:.4rem;border:2px solid #d5caba;border-radius:.7rem;background:#fffaf2}
+.role-choice img{width:min(100%,clamp(60px,9vh,100px));aspect-ratio:1;object-fit:contain}
+.role-choice:hover span{border-color:#988568}
+.role-choice input:checked + span{background:#ffedba;border-color:#ab7500}
+.role-choice input:focus-visible + span{outline:3px solid #246da4;outline-offset:2px}
+.leader-choice{grid-column:1/-1}
+.leader-choice span{min-height:36px}
 .game-start__panel button{
  display:flex;
  width:100%;
@@ -734,15 +746,21 @@ const G=window.TycoonEngine, DB=window.TYCOON_CONTENT;let SERVER=true;const SESS
 const PATHS=DB.ontwikkelpaden, short={O:'Omgeving',S:'Strategie',L:'Leiderschap',M:'Organisatie',P:'PRKK',I:'Informatie',E:'Evaluatie'};
 const pathIcons={O:'◈',S:'◎',L:'♜',M:'▦',P:'◇',I:'▤',E:'↻'};
 const teamColors=['#1279b5','#da7c23','#348d5f','#785398'];
-let teamOptions=['Team Blauw','Team Oranje','Team Groen'].map((name,index)=>({id:index+1,name}));
-function teamRoleOptions(selected='leider'){
- return [`<option value="leider">Spelleider</option>`,...teamOptions.map(({id,name})=>`<option value="team${id}" ${selected==='team'+id?'selected':''}>${esc(name)}</option>`)].join('');
+let teamOptions=['De Bruggenbouwers', 'De Wegwijzers', 'De Betonbazen', 'De Waterwachten'].map((name,index)=>({id:index+1,name}));
+function teamRoleOptions(selected){
+ const choices=teamOptions.map(({id,name})=>{
+  const value='team'+id;
+  return `<label class="role-choice"><input type="radio" name="role" value="${value}" required ${value===selected?'checked':''}>
+   <span><img src="./assets/team-${id}.webp" alt="">${esc(name)}</span></label>`;
+ });
+ choices.push(`<label class="role-choice leader-choice"><input type="radio" name="role" value="leider" required ${selected==='leider'?'checked':''}><span>Spelleider</span></label>`);
+ return choices.join('');
 }
 function setTeamOptions(teams){
  if(!Array.isArray(teams)||!teams.length)return;
  teamOptions=teams;
  const role=document.getElementById('role');
- if(role)role.innerHTML=teamRoleOptions(role.value);
+ if(role)role.innerHTML=teamRoleOptions(role.querySelector('input:checked')?.value);
 }
 const zones=[
  {id:'bridge',name:'Brug De Zeepoort',short:'De Zeepoort',x:53,y:62,icon:'bridge',events:[1,7],description:'Beweegbare brug aan de hoofdroute'},
@@ -803,8 +821,7 @@ function renderLogin(){
   </div>
   <form class="game-start__panel" aria-labelledby="game-start-title" onsubmit="event.preventDefault();login()">
    <h2 id="game-start-title">Doe mee aan het spel</h2>
-   <label for="role">Kies je team</label>
-   <select id="role">${teamRoleOptions()}</select>
+   <fieldset class="team-picker"><legend>Kies je team</legend><div id="role">${teamRoleOptions()}</div></fieldset>
    <label for="pin">Toegangscode</label>
    <input id="pin" autocapitalize="characters" autocomplete="one-time-code" placeholder="Vul je toegangscode in" required>
    <button type="submit">Naar het spel ${icon('arrow',24)}</button>
@@ -818,7 +835,7 @@ function renderSessionManagement(){
 }
 window.createCloudSession=async()=>{const key=document.getElementById('admin-secret')?.value||'';const el=document.getElementById('cloud-admin-result');if(!key){el.textContent='Vul de beheercode in.';return;}try{const r=await fetch(api('/api/admin/session'),{method:'POST',headers:{'X-Admin-Key':key},cache:'no-store'});const j=await r.json();if(!r.ok)throw new Error(j.error||'Kan sessie niet starten.');setTeamOptions(j.teams);document.getElementById('admin-secret').value='';el.innerHTML='<strong>De sessie is gestart. Deel alleen de juiste code per team.</strong><div class="cloud-codes">'+[['leider','Spelleider'],...teamOptions.map(({id,name})=>['team'+id,name])].filter(([role])=>Object.hasOwn(j.codes,role)).map(([role,name])=>'<div><span>'+esc(name)+'</span><code>'+esc(j.codes[role])+'</code></div>').join('')+'</div><button class="btn primary wide" id="cloud-leader-login">Open spelleidersdashboard</button>';document.getElementById('cloud-leader-login').onclick=()=>{actor='leider';pin=j.codes.leider;localStorage.setItem('at9_role',actor);sessionStorage.setItem('at9_pin',pin);window.location.replace('./');};}catch(e){el.textContent=e.message;}};
 window.deleteCloudSession=async()=>{const key=document.getElementById('admin-secret')?.value||'';const el=document.getElementById('cloud-admin-result');if(!key){el.textContent='Vul de beheercode in om de sessie te wissen.';return;}if(!confirm('Alle spelgegevens van alle teams definitief wissen? Dit kan niet ongedaan worden gemaakt.'))return;try{const r=await fetch(api('/api/admin/delete'),{method:'POST',headers:{'X-Admin-Key':key}}),j=await r.json();if(!r.ok)throw new Error(j.error||'Wissen mislukt');document.getElementById('admin-secret').value='';sessionStorage.removeItem('at9_pin');pin='';el.textContent='De sessie en alle opgeslagen resultaten zijn gewist. Je kunt een nieuwe sessie starten.';}catch(e){el.textContent=e.message;}};
-window.login=()=>{actor=document.getElementById('role').value;pin=document.getElementById('pin').value.trim();localStorage.setItem('at9_role',actor);sessionStorage.setItem('at9_pin',pin);lastRev=-1;load(true);};
+window.login=()=>{actor=document.querySelector('#role input:checked').value;pin=document.getElementById('pin').value.trim();localStorage.setItem('at9_role',actor);sessionStorage.setItem('at9_pin',pin);lastRev=-1;load(true);};
 window.switchActor=x=>{taskPane='';planFocus='';lastScene='';actor=x;localStorage.setItem('at9_role',actor);selectedZone='bridge';drafts.plans={};drafts.act=new Set();lastRev=-1;load(true);};
 window.logout=()=>{pin='';sessionStorage.removeItem('at9_pin');lastRev=-1;renderLogin();};
 let boardDetailZone='';
