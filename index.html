@@ -1729,7 +1729,9 @@ function doFacts(rows){
  const earned=rows.filter(x=>x.source!=='base');
  return `<div class="do-facts">${base.map(x=>`<div class="do-fact"><p>${esc(x.text)}</p></div>`).join('')}${earned.length?`<h3>Inzichten dankzij jullie keuzes</h3>${earned.map(x=>{
   const source=x.label?.replace(/^Meer inzicht door ontwikkeling van |^Extra inzicht dankzij /,'').replace(/^'(.+)'$/,'$1').replace(/ \(PRKK\)$/,'');
-  return `<div class="do-fact earned-fact"><strong class="do-fact-source">${esc(source||'Eerdere keuzes')}</strong><p>${esc(x.text)}</p></div>`;
+  const project=x.source==='project' && DB.ontwikkelprojecten.find(p=>p.naam===source);
+  const theme=project && PATHS.find(p=>p.code===project.pad_code)?.naam.replace(/ \(PRKK\)$/,'');
+  return `<div class="do-fact earned-fact"><strong class="do-fact-source">${esc(theme ? theme+' · '+source : source||'Eerdere keuzes')}</strong><p>${esc(x.text)}</p></div>`;
  }).join('')}`:''}</div>`;
 }
 function doUI(t){
