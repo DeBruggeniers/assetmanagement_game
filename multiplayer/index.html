@@ -156,7 +156,7 @@
 
 .act-outcome-list{margin:7px 0 0;padding-left:18px;color:#245341;font-size:.79rem}.act-outcome-list li{margin:4px 0;line-height:1.35}
 
-/* Version 0.20: fixed AP tiers, clearly comparable Act actions. */
+/* Version 0.20: fixed AF tiers, clearly comparable Act actions. */
 .act-tier{display:inline-flex;width:fit-content;font-size:.67rem;font-weight:750;line-height:1.15;padding:3px 7px;border-radius:4px;background:#f1f5f7;border:1px solid #dce5e9;color:#375c70}
 .act-tier.tier-1{background:#eff5f7;color:#426679}
 .act-tier.tier-2{background:#e7f3f1;color:#246754;border-color:#b7ddd1}
@@ -763,9 +763,9 @@ let actor=localStorage.getItem('at9_role')||'leider',pin=sessionStorage.getItem(
 const drafts={plans:{},do:'',check:null,act:new Set()};
 // Older game states and the multiplayer worker can still return the original labels.
 function pointTerms(text){
- return String(text??'').replace(/\binvesteringspunten\b/gi,'Ontwikkel Punten')
-  .replace(/\bverbeterpunten\b/gi,'Actie Punten')
-  .replace(/\bIP\b/g,'OP').replace(/\bVP\b/g,'AP');
+ return String(text??'').replace(/\b(?:investeringspunten|ontwikkel\s*punten)\b/gi,'Ontwikkel Fiches')
+  .replace(/\b(?:verbeterpunten|actie\s*punten)\b/gi,'Actie Fiches')
+  .replace(/\b(?:IP|OP)\b/g,'OF').replace(/\b(?:VP|AP)\b/g,'AF');
 }
 function exportPointTerms(key,value){
  return Array.isArray(value)&&['notes','actOutcomes','outcomes'].includes(key)
@@ -1100,8 +1100,8 @@ function resources(t){
  const item=entry=>`<li><b>${esc(entry.title)}</b><small>${esc(entry.description)} · Effect tot en met jaar ${entry.until}</small></li>`;
  const shown=active.slice(0,3),more=active.slice(3);
  return `<section class="resource-summary" aria-label="Middelen, structurele verbeteringen en risico's">
-  <div class="resource-budget">${icon('coins',24)}<div><strong>${t.ip}</strong><span>Ontwikkel Punten (OP)</span><small>Maximaal 8 OP</small></div></div>
-  <div class="resource-budget">${icon('wrench',24)}<div><strong>${t.vp}</strong><span>Actie Punten (AP)</span><small>Per gebeurtenis +3, maximaal 5</small></div></div>
+  <div class="resource-budget">${icon('coins',24)}<div><strong>${t.ip}</strong><span>Ontwikkel Fiches (OF)</span><small>Maximaal 8 OF</small></div></div>
+  <div class="resource-budget">${icon('wrench',24)}<div><strong>${t.vp}</strong><span>Actie Fiches (AF)</span><small>Per gebeurtenis +3, maximaal 5</small></div></div>
   <div class="status-panel"><h3>${icon('shield',20)} Structurele verbeteringen <span class="status-count">${active.length} actief</span></h3>${active.length?`<ul>${shown.map(item).join('')}</ul>${more.length?`<details><summary>Toon nog ${more.length} verbeteringen</summary><ul>${more.map(item).join('')}</ul></details>`:''}`:'<p>Nog geen doorwerkende verbeteringen. Passende Do- en Act-maatregelen kunnen toekomstige problemen beperken.</p>'}</div>
   <div class="status-panel status-risk"><h3>${icon('alert',20)} Openstaande risico’s <span class="status-count">${open.length} open</span></h3>${open.length?`<ul>${open.slice(0,3).map(r=>`<li><b>${esc(riskTitles[r.code]||(String(r.code).startsWith('NOOD_')?'Niet-opgeloste noodsituatie':r.code))}</b><small>Kan bij een volgende vergelijkbare gebeurtenis opnieuw schade veroorzaken. ${r.kind==='veiligheid'?'Zwaarder effect op de eindscore.':''} Bij een latere passende gebeurtenis kan een Act-herstelmaatregel dit risico sluiten.</small></li>`).join('')}</ul>${open.length>3?`<details><summary>Toon overige ${open.length-3} risico’s</summary><ul>${open.slice(3).map(r=>`<li>${esc(riskTitles[r.code]||r.code)}</li>`).join('')}</ul></details>`:''}`:'<p>Geen openstaande risico’s. Problemen die niet structureel worden opgelost, kunnen later terugkeren.</p>'}</div>
  </section>`;
@@ -1124,15 +1124,15 @@ function planUI(t){
  const used=Math.max(0,chosen.reduce((a,c)=>a+(G.COST[t.levels[c]+1]||99),0)-learningDiscount-leadershipDiscount);
  const ready=chosen.length<=3&&used<=t.ip&&complete;
  const ipLeft=t.ip-used;
- const planFooterSummary=`${chosen.length}/3 paden · ${ipLeft>=0?ipLeft+' OP over':(-ipLeft)+' OP tekort'}`;
+ const planFooterSummary=`${chosen.length}/3 paden · ${ipLeft>=0?ipLeft+' OF over':(-ipLeft)+' OF tekort'}`;
  if(t.plans[v.year])return completed('Ontwikkelplan ingediend','De gekozen projecten zijn toegevoegd aan jullie organisatie. Wacht tot de spelleider Do start.');
  const effects={cost:'Bij passende gebeurtenissen tot € 0,1 mln lagere kosten.',b:'Kan verlies aan bereikbaarheid met 1 punt beperken.',l:'Kan verlies aan leefbaarheid met 1 punt beperken.',v:'Kan verlies aan veiligheid met 1 punt beperken.',info:'Levert aanvullende informatie voor besluitvorming.'};
  const carryOP=t.history?.find(h=>h.year===v.year&&h.stage==='OP')?.carry||0;
- const summary=`<div class="budget-line compact-budget"><span>${icon('coins',16)} <b>${t.ip} OP beschikbaar</b>${carryOP?` · ${carryOP} OP meegenomen`:''}</span><span>${chosen.length}/3 paden · ${used} OP nodig</span></div>`;
+ const summary=`<div class="budget-line compact-budget"><span>${icon('coins',16)} <b>${t.ip} OF beschikbaar</b>${carryOP?` · ${carryOP} OF meegenomen`:''}</span><span>${chosen.length}/3 paden · ${used} OF nodig</span></div>`;
  let body='',footer='';
  if(taskPane==='paths'){
   body=`<div class="task-intro compact-intro"><h2>Kies jullie ontwikkelpaden</h2><p>Je kunt maximaal drie paden ontwikkelen. De selectie blijft staan wanneer je verdergaat.</p></div>${summary}<div class="path-list">${PATHS.map(path=>{const c=path.code,lev=t.levels[c],selected=Object.prototype.hasOwnProperty.call(drafts.plans,c),pick=drafts.plans[c],cost=G.COST[lev+1]||0;const name=pick?DB.ontwikkelprojecten.find(x=>x.id===pick)?.naam:'';
-   return `<label class="path-row ${selected?'selected':''}"><input type="checkbox" data-board-focus="path-${c}" ${selected?'checked':''} ${lev>=5||(!selected&&chosen.length>=3)?'disabled':''} onchange="toggleTrack('${c}',this.checked)"><span><b>${esc(path.naam)}</b><small>${lev>=5?'Niveau 5':`Niveau ${lev} → ${lev+1} · ${cost} OP`}${name?' · '+esc(name):''}</small></span></label>`}).join('')}</div>`;
+   return `<label class="path-row ${selected?'selected':''}"><input type="checkbox" data-board-focus="path-${c}" ${selected?'checked':''} ${lev>=5||(!selected&&chosen.length>=3)?'disabled':''} onchange="toggleTrack('${c}',this.checked)"><span><b>${esc(path.naam)}</b><small>${lev>=5?'Niveau 5':`Niveau ${lev} → ${lev+1} · ${cost} OF`}${name?' · '+esc(name):''}</small></span></label>`}).join('')}</div>`;
   footer=`<div class="task-footer"><span>${planFooterSummary}</span><button class="btn primary" onclick="showTaskPane('${chosen.length?'projects':'overview'}')">${chosen.length?'Verder naar projecten':'Naar overzicht'} ${icon('arrow',16)}</button></div>`;
  }else if(taskPane==='projects'){
   const available=chosen.filter(c=>t.levels[c]<5);const code=available.includes(planFocus)?planFocus:available.find(c=>!drafts.plans[c])||available[0];planFocus=code||'';
@@ -1149,7 +1149,7 @@ function planUI(t){
   }
  }else{
   const projects=chosen.map(c=>({path:PATHS.find(x=>x.code===c),pick:drafts.plans[c],cost:G.COST[t.levels[c]+1]||0,project:DB.ontwikkelprojecten.find(x=>x.id===drafts.plans[c])}));
-  body=`<div class="task-intro compact-intro"><h2>Controleer jullie ontwikkelplan</h2><p>Bekijk de gekozen projecten voordat je het plan definitief vastlegt.</p></div>${summary}<div class="plan-review-list">${projects.length?projects.map(p=>`<div class="plan-review-item"><strong>${esc(p.path.naam)}</strong><span>${p.pick?esc(p.project?.naam||'Project gekozen'):'Nog geen project gekozen'}</span><small>${p.cost} OP · volgend niveau ${t.levels[p.path.code]+1}</small></div>`).join(''):'<p class="muted">Jullie hebben nog geen ontwikkelproject gekozen.</p>'}</div>${chosen.length<3?`<p class="plan-hint">Jullie hebben ${chosen.length} van maximaal 3 ontwikkelpaden gekozen. Je kunt er nog ${3-chosen.length} toevoegen als jullie dat willen.</p>`:''}${used>t.ip?`<p class="field-error">Er zijn onvoldoende Ontwikkel Punten. Pas je selectie aan.</p>`:''}${!complete?`<p class="field-error">Kies eerst bij ieder geselecteerd pad een project.</p>`:''}`;
+  body=`<div class="task-intro compact-intro"><h2>Controleer jullie ontwikkelplan</h2><p>Bekijk de gekozen projecten voordat je het plan definitief vastlegt.</p></div>${summary}<div class="plan-review-list">${projects.length?projects.map(p=>`<div class="plan-review-item"><strong>${esc(p.path.naam)}</strong><span>${p.pick?esc(p.project?.naam||'Project gekozen'):'Nog geen project gekozen'}</span><small>${p.cost} OF · volgend niveau ${t.levels[p.path.code]+1}</small></div>`).join(''):'<p class="muted">Jullie hebben nog geen ontwikkelproject gekozen.</p>'}</div>${chosen.length<3?`<p class="plan-hint">Jullie hebben ${chosen.length} van maximaal 3 ontwikkelpaden gekozen. Je kunt er nog ${3-chosen.length} toevoegen als jullie dat willen.</p>`:''}${used>t.ip?`<p class="field-error">Er zijn onvoldoende Ontwikkel Fiches. Pas je selectie aan.</p>`:''}${!complete?`<p class="field-error">Kies eerst bij ieder geselecteerd pad een project.</p>`:''}`;
   footer=`<div class="task-footer plan-review-footer"><span>${planFooterSummary}</span><button class="btn primary" ${ready?'':'disabled'} onclick="submitPlan()">Bevestig ontwikkelplan ${icon('check',17)}</button></div>`;
  }
  return `${tabs([['paths','1. Ontwikkelpaden'],['projects','2. Projecten'],['overview','3. Overzicht']])}<div class="task-pane-content plan-content" role="tabpanel">${body}</div>${footer}`;
@@ -1230,7 +1230,7 @@ function checkUI(t){
  const body=`<h3>Welke conclusie kunnen jullie met deze bevindingen het beste onderbouwen?</h3>
   ${facts.length?`<details class="phase-details" data-phase-detail="findings" open><summary>Belangrijkste bevindingen</summary>${list(facts)}</details>`:''}
   <div class="option-grid compact-options">${v.checkChoices.map(a=>`<label class="option ${(pending?drafts.check:r.answer)===a.value?'picked':''}"><input type="radio" name="check" data-board-focus="check-${a.value}" value="${a.value}" onchange="chooseCheck(${a.value})" ${(pending?drafts.check:r.answer)===a.value?'checked':''} ${pending?'':'disabled'}><span>${esc(a.label)}</span></label>`).join('')}</div>
-  ${pending?'':`<div class="result-feedback ${r.answer===0?'good':'warn'}"><strong>${r.answer===0?'Jullie conclusie past bij de bevindingen.':'De gekozen conclusie past minder goed bij de gegevens.'}</strong><p>${esc(v.checkFeedback||v.event.revealedReality||'De evaluatie is afgerond.')}</p>${r.bonusVP?`<p><b>+${r.bonusVP} AP verdiend.</b></p>`:''}</div>`}`;
+  ${pending?'':`<div class="result-feedback ${r.answer===0?'good':'warn'}"><strong>${r.answer===0?'Jullie conclusie past bij de bevindingen.':'De gekozen conclusie past minder goed bij de gegevens.'}</strong><p>${esc(v.checkFeedback||v.event.revealedReality||'De evaluatie is afgerond.')}</p>${r.bonusVP?`<p><b>+${r.bonusVP} AF verdiend.</b></p>`:''}</div>`}`;
  return phaseStep(steps,body,pending?phaseFooter('Leg jullie conclusie vast','submitCheck()',{disabled:drafts.check===null,submit:true}):'');
 }
 function conclusionKey(answer){return `ndd.check.${v.me.id}.${v.year}.${v.event.id}.${answer}`;}
@@ -1262,14 +1262,14 @@ function actUI(t){
  const euros=n=>'€ '+Math.round(n*1e6).toLocaleString('nl-NL');
  const body=`<div class="act-list act-compact-list">${opts.map(x=>`<div class="act-option ${drafts.act.has(x.id)?'on':''} ${x.available?'':'disabled'}">
   <label><input type="checkbox" data-board-focus="act-${esc(x.id)}" value="${esc(x.id)}" onchange="toggleAct(this.value,this.checked)" ${drafts.act.has(x.id)?'checked':''} ${x.available?'':'disabled'}>
-  <span><strong>${esc(x.name)}</strong><small class="act-option-short">${esc(concise(x.desc,115))}</small></span><span class="act-price">${x.vp} AP<br><small>${euros(x.cost)}</small></span></label>
+  <span><strong>${esc(x.name)}</strong><small class="act-option-short">${esc(concise(x.desc,115))}</small></span><span class="act-price">${x.vp} AF<br><small>${euros(x.cost)}</small></span></label>
   <details class="phase-details act-card-details" data-phase-detail="act-${esc(x.id)}"><summary>Details en verwacht effect</summary>
    ${x.desc?.length>115?`<p>${esc(x.desc)}</p>`:''}${x.effectText?`<p><strong>Verwacht effect</strong> · ${esc(x.effectText)}</p>`:''}
-   ${x.supportText?`<p>${esc(x.supportText)}</p>`:''}${x.learningAvailable?'<p>Mogelijk 1 OP voordeel bij PLAN volgend jaar.</p>':''}
+   ${x.supportText?`<p>${esc(x.supportText)}</p>`:''}${x.learningAvailable?'<p>Mogelijk 1 OF voordeel bij PLAN volgend jaar.</p>':''}
    ${x.desc?.length<=115&&!x.effectText&&!x.supportText&&!x.learningAvailable?`<p>${esc(x.desc)}</p>`:''}
-  </details></div>`).join('')}</div>${valid?'':'<p class="field-error">Deze combinatie past niet binnen jullie AP of financiële ruimte.</p>'}`;
+  </details></div>`).join('')}</div>${valid?'':'<p class="field-error">Deze combinatie past niet binnen jullie AF of financiële ruimte.</p>'}`;
  const remainder=t.vp-vp;
- const summary=`${Math.abs(remainder)} AP ${remainder<0?'tekort':'over'} · ${euros(price)} aan kosten`;
+ const summary=`${Math.abs(remainder)} AF ${remainder<0?'tekort':'over'} · ${euros(price)} aan kosten`;
  return phaseStep(steps,body,phaseFooter(selected.length?'Leg verbeteringen vast':'Verder zonder verbetering','submitAct()',{summary,disabled:!valid,submit:true}));
 }
 window.toggleAct=(id,on)=>{if(on)drafts.act.add(id);else drafts.act.delete(id);render();};window.submitAct=()=>send('act',{keys:Array.from(drafts.act)});
@@ -1345,11 +1345,11 @@ function teamYearDashboard(){
   row('Jaarstart',year===1?'Startreserve':'Nieuw jaarbudget',zero,opening===null||(!previous&&year>1)?null:opening-(previous?.reserve||0));
  }
  const picks=stage('PLAN')?.picks||plan?.picks||[];
- row('PLAN',plan?(picks.map(p=>p.naam||p.projectId).join(' · ')||'Geen ontwikkelproject gekozen'):'Plan nog open',plan?zero:null,plan?0:null,plan?`${plan.cost} OP besteed`:'');
+ row('PLAN',plan?(picks.map(p=>p.naam||p.projectId).join(' · ')||'Geen ontwikkelproject gekozen'):'Plan nog open',plan?zero:null,plan?0:null,plan?`${plan.cost} OF besteed`:'');
  const choice=event.choice==='N'?'Noodmaatregel':event.choiceLabel||DB.besluitopties?.find(x=>x.gebeurtenis_id===id&&x.keuze===event.choice)?.omschrijving;
  row('DO',event.choice?[event.choice,choice].filter(Boolean).join(' · '):'Besluit nog open',result?.delta,Number.isFinite(result?.cost)?-result.cost:null,result?(result.triggeredPriorRisks||[]).map(x=>`Inclusief risico uit jaar ${x.year}: ${x.label}`).join(' · '):event.choice?'Effect volgt bij CHECK':'');
- row('CHECK',event.answer===undefined?'Conclusie nog open':event.conclusion||`Conclusie vastgelegd (${event.answer===0?'best onderbouwd':'minder goed onderbouwd'})`,event.answer===undefined?null:zero,event.answer===undefined?null:0,event.answer===undefined?'':(event.answer===0?'Best onderbouwde conclusie':'Minder goed onderbouwde conclusie')+(event.bonusVP?' · +1 AP':''));
- row('ACT',event.act?(act?.labels?.join(' · ')||(event.act.length?event.act.join(', '):'Verder zonder verbetering')):'Verbeterkeuze nog open',event.actImpact?.delta,Number.isFinite(event.actCost)?-event.actCost:null,act?`${act.vp} AP besteed`:'');
+ row('CHECK',event.answer===undefined?'Conclusie nog open':event.conclusion||`Conclusie vastgelegd (${event.answer===0?'best onderbouwd':'minder goed onderbouwd'})`,event.answer===undefined?null:zero,event.answer===undefined?null:0,event.answer===undefined?'':(event.answer===0?'Best onderbouwde conclusie':'Minder goed onderbouwde conclusie')+(event.bonusVP?' · +1 AF':''));
+ row('ACT',event.act?(act?.labels?.join(' · ')||(event.act.length?event.act.join(', '):'Verder zonder verbetering')):'Verbeterkeuze nog open',event.actImpact?.delta,Number.isFinite(event.actCost)?-event.actCost:null,act?`${act.vp} AF besteed`:'');
  if(annual){
   const actual={};
   for(const k of ['b','l','v'])if(Number.isFinite(result?.post?.[k])&&Number.isFinite(event.actImpact?.delta?.[k]))actual[k]=annual[k]-result.post[k]-event.actImpact.delta[k];
@@ -1372,7 +1372,7 @@ window.advance=()=>{
 window.exportGame=async()=>{try{const r=await fetch(api('/api/export'),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({role:actor,pin})});const out=await r.json();if(!r.ok)throw new Error(out.error||'Export mislukt');const b=new Blob([JSON.stringify(out,exportPointTerms,2)],{type:'application/json'}),url=URL.createObjectURL(b),a=document.createElement('a');a.href=url;a.download='noordzeeland-draait-door-spelstatus.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}catch(e){toast(e.message,true);}};
 
 function results(){return `<div class="content-page"><h1>Vergelijk de teams</h1><p>De maatschappelijke waarde is de gewogen score voor bereikbaarheid, leefbaarheid en veiligheid. De eindscore bevat ook financiële en risicocorrecties.</p><div class="compare-grid">${v.teams.map(t=>`<article class="comparison" style="--team:${teamColors[t.id-1]}"><h2>${esc(t.name)}</h2><strong class="compare-score">${f1(v.finished?t.final:t.score)}</strong><div class="compare-metrics">${[['Bereikbaarheid',t.b],['Leefbaarheid',t.l],['Veiligheid',t.v]].map(([n,x])=>`<div><label>${n} <b>${x}</b></label><div class="bar-rail"><i style="width:${x}%"></i></div></div>`).join('')}</div><p>Reserve ${money(t.reserve)} · Volwassenheid ${f1(t.maturity)} · ${t.openRisks} open risico’s</p></article>`).join('')}</div>${v.finished?finalPanel():''}</div>`;}
-function history(){let lines=v.me?v.me.history:v.fullTeams.flatMap(x=>x.history.map(h=>({...h,team:x.name})));lines=lines.slice().reverse();return `<div class="content-page"><h1>Besluiten en resultaten</h1><p>Overzicht van de gemaakte keuzes. Zo zie je hoe eerdere beslissingen doorwerken in de volgende jaren.</p><div class="history-list">${lines.length?lines.map(h=>`<div><b>Jaar ${h.year}${h.event?' · Gebeurtenis '+h.event:''} · ${esc(h.stage==='VP'?'AP':h.stage)}</b>${h.team?' · '+esc(h.team):''}<p>${h.stage==='PLAN'?'Ontwikkelprojecten: '+((h.picks||[]).map(p=>p.naam||DB.ontwikkelprojecten?.find(pr=>pr.id===p.projectId)?.naam||p.code).join(', ')||'geen')+'.'+(h.learningDiscount?' 1 OP korting dankzij eerdere evaluatie.':''):h.stage==='DO'?'Interventie '+h.choice+'. Verandering B '+sign(h.result.delta.b)+', L '+sign(h.result.delta.l)+', V '+sign(h.result.delta.v)+'.':h.stage==='OP'?'Ontwikkel Punten: '+h.granted+' nieuwe OP, '+h.carry+' meegenomen. Saldo '+h.total+' OP.':h.stage==='VP'?'Actie Punten: '+h.granted+' nieuwe AP, '+h.carry+' meegenomen. Saldo '+h.total+' AP.':h.stage==='JAAR'?'Jaarlijkse achteruitgang B −'+h.decay.b+', L −'+h.decay.l+', V −'+h.decay.v+'. Beperkt door gerichte Do/Act-maatregelen: B '+h.avoided.b+', L '+h.avoided.l+', V '+h.avoided.v+'.':h.stage==='CORRECTIE'?esc(pointTerms(h.description||'')):'Vervolgmaatregelen: '+((h.labels||h.keys||[]).join(', ')||'geen')+'.'+(h.outcomes?.length?' Effecten: '+esc(h.outcomes.map(pointTerms).join(' ')):'')}</p></div>`).join(''):'<p>Er zijn nog geen besluiten vastgelegd.</p>'}</div></div>`;}
+function history(){let lines=v.me?v.me.history:v.fullTeams.flatMap(x=>x.history.map(h=>({...h,team:x.name})));lines=lines.slice().reverse();return `<div class="content-page"><h1>Besluiten en resultaten</h1><p>Overzicht van de gemaakte keuzes. Zo zie je hoe eerdere beslissingen doorwerken in de volgende jaren.</p><div class="history-list">${lines.length?lines.map(h=>`<div><b>Jaar ${h.year}${h.event?' · Gebeurtenis '+h.event:''} · ${esc(pointTerms(h.stage))}</b>${h.team?' · '+esc(h.team):''}<p>${h.stage==='PLAN'?'Ontwikkelprojecten: '+((h.picks||[]).map(p=>p.naam||DB.ontwikkelprojecten?.find(pr=>pr.id===p.projectId)?.naam||p.code).join(', ')||'geen')+'.'+(h.learningDiscount?' 1 OF korting dankzij eerdere evaluatie.':''):h.stage==='DO'?'Interventie '+h.choice+'. Verandering B '+sign(h.result.delta.b)+', L '+sign(h.result.delta.l)+', V '+sign(h.result.delta.v)+'.':h.stage==='OP'?'Ontwikkel Fiches: '+h.granted+' nieuwe OF, '+h.carry+' meegenomen. Saldo '+h.total+' OF.':h.stage==='VP'?'Actie Fiches: '+h.granted+' nieuwe AF, '+h.carry+' meegenomen. Saldo '+h.total+' AF.':h.stage==='JAAR'?'Jaarlijkse achteruitgang B −'+h.decay.b+', L −'+h.decay.l+', V −'+h.decay.v+'. Beperkt door gerichte Do/Act-maatregelen: B '+h.avoided.b+', L '+h.avoided.l+', V '+h.avoided.v+'.':h.stage==='CORRECTIE'?esc(pointTerms(h.description||'')):'Vervolgmaatregelen: '+((h.labels||h.keys||[]).join(', ')||'geen')+'.'+(h.outcomes?.length?' Effecten: '+esc(h.outcomes.map(pointTerms).join(' ')):'')}</p></div>`).join(''):'<p>Er zijn nog geen besluiten vastgelegd.</p>'}</div></div>`;}
 window.setView=x=>{if(x==='game'&&view!=='game'){taskPane='';planFocus='';}view=x;render();};
 function fitTaskToViewport(){
  const task=document.querySelector('.focus-action .task.task-fixed');
