@@ -428,7 +428,7 @@ button.maturity-row{font:inherit;color:inherit;background:white;text-align:left;
 }
 .game-start__panel{
  margin:2rem clamp(1.5rem,3vw,4.75rem) 2rem 0;
- padding:clamp(1.6rem,2.2vw,3.2rem);
+ padding:clamp(1rem,1.5vw,2rem);
  border:1px solid #ffffff9c;
  border-radius:clamp(.9rem,1.15vw,1.35rem);
  background:#fbf3e5;
@@ -466,12 +466,12 @@ button.maturity-row{font:inherit;color:inherit;background:white;text-align:left;
  outline-offset:3px;
 }
 .team-picker{border:0;margin:0 0 1rem;padding:0;min-width:0}
-.team-picker legend{font-weight:800;margin-bottom:.5rem}
+.team-picker legend{font-size:clamp(1.35rem,2vw,2rem);line-height:1.1;font-weight:800;margin-bottom:.65rem}
 .team-picker #role{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:.45rem}
 .team-picker .role-choice{position:relative;cursor:pointer;margin:0;font-size:.85rem}
 .role-choice input{position:absolute;left:.4rem;top:.4rem;accent-color:#103858}
 .role-choice span{display:grid;justify-items:center;align-content:center;text-align:center;gap:.2rem;height:100%;box-sizing:border-box;padding:.4rem;border:2px solid #d5caba;border-radius:.7rem;background:#fffaf2}
-.role-choice img{width:min(100%,clamp(60px,9vh,100px));aspect-ratio:1;object-fit:contain}
+.role-choice img{width:min(100%,clamp(106px,18vh,180px));aspect-ratio:1;object-fit:contain}
 .role-choice:hover span{border-color:#988568}
 .role-choice input:checked + span{background:#ffedba;border-color:#ab7500}
 .role-choice input:focus-visible + span{outline:3px solid #246da4;outline-offset:2px}
@@ -751,7 +751,7 @@ function teamRoleOptions(selected){
  const choices=teamOptions.map(({id,name})=>{
   const value='team'+id;
   return `<label class="role-choice"><input type="radio" name="role" value="${value}" required ${value===selected?'checked':''}>
-   <span><img src="./assets/team-${id}.webp" alt="">${esc(name)}</span></label>`;
+   <span><img src="./assets/team-${id}.webp" alt="${esc(name)}">${name!==['De Bruggenbouwers','De Wegwijzers','De Betonbazen','De Waterwachten'][id-1]?esc(name):''}</span></label>`;
  });
  choices.push(`<label class="role-choice leader-choice"><input type="radio" name="role" value="leider" required ${selected==='leider'?'checked':''}><span>Spelleider</span></label>`);
  return choices.join('');
@@ -820,8 +820,7 @@ function renderLogin(){
    </div>
   </div>
   <form class="game-start__panel" aria-labelledby="game-start-title" onsubmit="event.preventDefault();login()">
-   <h2 id="game-start-title">Doe mee aan het spel</h2>
-   <fieldset class="team-picker"><legend>Kies je team</legend><div id="role">${teamRoleOptions()}</div></fieldset>
+   <fieldset class="team-picker"><legend id="game-start-title">Kies je team</legend><div id="role">${teamRoleOptions()}</div></fieldset>
    <label for="pin">Toegangscode</label>
    <input id="pin" autocapitalize="characters" autocomplete="one-time-code" placeholder="Vul je toegangscode in" required>
    <button type="submit">Naar het spel ${icon('arrow',24)}</button>
