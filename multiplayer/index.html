@@ -1091,7 +1091,7 @@ function mapPanel(team){
 function statusName(x){return ({issue:'Huidige gebeurtenis',risk:'Risico open',limited:'Aandacht nodig',improved:'Verbeterd',upgraded:'Verbeterd',base:'Nog te spelen'})[x]||x;}
 window.jumpToTask=()=>{const el=document.getElementById('task');if(!el)return;if(window.innerWidth<=1200)el.scrollIntoView({behavior:'smooth',block:'start'});else{el.setAttribute('tabindex','-1');el.focus({preventScroll:true});}};
 function scores(team,rank){const changes=checkScoreChanges(team);return `<div class="score-row${v.teams.length===1?' solo-scores':''}">${boardScores.map(([key,label,ico])=>{const n=team[key],change=changes.find(item=>item.key===key);return `<div class="score-stat"><span>${icon(ico,20)} ${label}</span><strong>${n}<small>/100</small></strong>${change?`<span class="board-score-shift" aria-label="${esc(label)} van ${change.before} naar ${change.after}">${change.before} → ${change.after} <b class="${change.delta<0?'loss':'gain'}">(${signedScore(change.delta)})</b></span>${change.earlierLoss?`<small class="board-risk-impact">Eerder openstaand risico −${change.earlierLoss}</small>`:''}`:''}<div class="bar-rail"><i style="width:${n}%" class="${n<60?'poor':n<80?'medium':''}"></i></div></div>`;}).join('')}<div class="score-stat finance"><span>${icon('coins',20)} Reserve</span><strong>${money(team.reserve)}</strong><small>Kredietlimiet −€ 2,0 mln</small></div>${v.teams.length>1?`<div class="score-stat rank-stat" aria-label="Positie ${rank} van ${v.teams.length}"><div class="rank-stat-row"><span>${icon('award',20)} Positie</span><strong>${rank} <small>/ ${v.teams.length}</small></strong></div></div>`:''}</div>`;}
-function showThemeProjects(button){
+window.showThemeProjects=function(button){
  const dialog=document.createElement('dialog');
  dialog.className='theme-project-dialog';
  dialog.setAttribute('aria-labelledby','theme-project-heading');
@@ -1103,7 +1103,7 @@ function showThemeProjects(button){
   (document.querySelector('.maturity-row[data-track="'+button.dataset.track+'"]')||button).focus();
  },{once:true});
  dialog.showModal();
-}
+};
 function maturity(team){const avg=PATHS.reduce((n,p)=>n+team.levels[p.code],0)/PATHS.length;
 const years=new Map();
 for(const entry of team.history||[]) {
