@@ -1656,7 +1656,28 @@ function mapPanel(team){
 }
 function statusName(x){return ({issue:'Huidige gebeurtenis',risk:'Risico open',limited:'Aandacht nodig',improved:'Verbeterd',upgraded:'Verbeterd',base:'Nog te spelen'})[x]||x;}
 window.jumpToTask=()=>{const el=document.getElementById('task');if(!el)return;if(window.innerWidth<=1200)el.scrollIntoView({behavior:'smooth',block:'start'});else{el.setAttribute('tabindex','-1');el.focus({preventScroll:true});}};
-function scores(team,rank){const changes=checkScoreChanges(team);return `<div class="score-row${v.teams.length===1?' solo-scores':''}">${boardScores.map(([key,label,ico])=>{const n=team[key],change=changes.find(item=>item.key===key);return `<div class="score-stat"><span>${icon(ico,20)} ${label}</span><strong>${n}<small>/100</small></strong>${change?`<span class="board-score-shift" aria-label="${esc(label)} van ${change.before} naar ${change.after}">${change.before} → ${change.after} <b class="${change.delta<0?'loss':'gain'}">(${signedScore(change.delta)})</b></span>${change.earlierLoss?`<small class="board-risk-impact">Eerder openstaand risico −${change.earlierLoss}</small>`:''}`:''}<div class="bar-rail"><i style="width:${n}%" class="${n<60?'poor':n<80?'medium':''}"></i></div></div>`;}).join('')}<div class="score-stat finance"><span>${icon('coins',20)} Reserve</span><strong>${money(team.reserve)}</strong><small>Kredietlimiet −€ 2,0 mln</small></div>${v.teams.length>1?`<div class="score-stat rank-stat" aria-label="Positie ${rank} van ${v.teams.length}, waarde ${f1(v.teams.find(x=>x.id===team.id).score)}"><div class="rank-stat-row"><span>${icon('award',20)} Positie</span><strong>${rank} <small>/ ${v.teams.length}</small></strong></div><div class="rank-stat-row"><span>Waarde</span><strong>${f1(v.teams.find(x=>x.id===team.id).score)}</strong></div></div>`:''}</div>`;}
+window.showScoreHistory=function(button,key){
+ const team=v.me;
+ const label=boardScores.find(([code])=>code===key)?.[1];
+ if(!team||!label)return;
+ const years=new Map([[0,75]]);
+ for(const row of team.annual||[]) if(Number.isFinite(row[key]))years.set(row.year,row[key]);
+ const current=!years.has(v.year);
+ if(current)years.set(v.year,team[key]);
+ const rows=[...years].sort((a,b)=>a[0]-b[0]);
+ const x=y=>42+440*y/Math.max(1,v.year),py=n=>152-1.28*n;
+ const grid=[0,25,50,75,100].map(n=>`<text x="31" y="${py(n)+4}" text-anchor="end">${n}</text><path d="M39 ${py(n)}H493" stroke="#d6e2e8"/>`).join('');
+ const dots=rows.map(([y,n])=>`<circle cx="${x(y)}" cy="${py(n)}" r="4" fill="${current&&y===v.year?'#fff':'#12668b'}" stroke="#12668b" stroke-width="2"/><text x="${x(y)}" y="${py(n)-9}" text-anchor="middle">${n}</text><text x="${x(y)}" y="172" text-anchor="middle">${y||'Start'}</text>`).join('');
+ const dialog=document.createElement('dialog');
+ dialog.className='theme-project-dialog';
+ dialog.style.width='min(580px,94vw)';
+ dialog.setAttribute('aria-labelledby','score-history-title');
+ dialog.innerHTML=`<h2 id="score-history-title">${label}</h2><p>${esc(team.name)} · Score per speljaar</p><svg viewBox="0 0 515 198" style="display:block;width:100%;font:13px sans-serif" role="img" aria-label="${esc(rows.map(([y,n])=>(y?'Jaar '+y:'Start')+': '+n).join(', '))}">${grid}<polyline points="${rows.map(([y,n])=>x(y)+','+py(n)).join(' ')}" fill="none" stroke="#12668b" stroke-width="3"/>${dots}<text x="257" y="194" text-anchor="middle">Speljaar</text></svg>${current?`<p><small>Het open punt bij jaar ${v.year} is de huidige stand.</small></p>`:''}<form method="dialog"><button autofocus class="btn primary">Sluiten</button></form>`;
+ document.body.append(dialog);
+ dialog.addEventListener('close',()=>{dialog.remove();(document.querySelector('[data-score-history="'+key+'"]')||button).focus();},{once:true});
+ dialog.showModal();
+};
+function scores(team,rank){const changes=checkScoreChanges(team);return `<div class="score-row${v.teams.length===1?' solo-scores':''}">${boardScores.map(([key,label,ico])=>{const n=team[key],change=changes.find(item=>item.key===key);return `<button type="button" class="score-stat" style="cursor:pointer;text-align:left;font-family:inherit" aria-haspopup="dialog" data-score-history="${key}" title="Bekijk het scoreverloop" onclick="showScoreHistory(this,'${key}')"><span>${icon(ico,20)} ${label}</span><strong>${n}<small>/100</small></strong>${change?`<span class="board-score-shift" aria-label="${esc(label)} van ${change.before} naar ${change.after}">${change.before} → ${change.after} <b class="${change.delta<0?'loss':'gain'}">(${signedScore(change.delta)})</b></span>${change.earlierLoss?`<small class="board-risk-impact">Eerder openstaand risico −${change.earlierLoss}</small>`:''}`:''}<div class="bar-rail"><i style="width:${n}%" class="${n<60?'poor':n<80?'medium':''}"></i></div></button>`;}).join('')}<div class="score-stat finance"><span>${icon('coins',20)} Reserve</span><strong>${money(team.reserve)}</strong><small>Kredietlimiet −€ 2,0 mln</small></div>${v.teams.length>1?`<div class="score-stat rank-stat" aria-label="Positie ${rank} van ${v.teams.length}, waarde ${f1(v.teams.find(x=>x.id===team.id).score)}"><div class="rank-stat-row"><span>${icon('award',20)} Positie</span><strong>${rank} <small>/ ${v.teams.length}</small></strong></div><div class="rank-stat-row"><span>Waarde</span><strong>${f1(v.teams.find(x=>x.id===team.id).score)}</strong></div></div>`:''}</div>`;}
 window.showThemeProjects=function(button){
  const dialog=document.createElement('dialog');
  dialog.className='theme-project-dialog';
