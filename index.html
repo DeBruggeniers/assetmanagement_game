@@ -1276,6 +1276,18 @@ else if(act.type==='act'){
  t.history.push({year:g.year,event:ev.id,stage:'ACT',keys,labels:sel.map(x=>x.name),vp,tiers:sel.map(x=>x.tier||'Gerichte verbetering'),outcomes});
  record(g,`${t.name} heeft de verbetermaatregelen vastgelegd.`,t.id);
 }
+else if(act.type==='finish'){
+ req(leader,'Alleen de spelbegeleider kan het spel afronden.');
+ req(act.year===g.year&&act.phase===phase,'De spelfase is gewijzigd. Controleer de stand opnieuw.');
+ req(g.year>1||phase!=='PLAN','Start eerst het spel met de deelnemende teams.');
+ if(phase==='ACT'&&g.teams.every(team=>status(g,team)==='gereed')){
+  for(const team of g.teams)annual(g,team);
+ }else if(phase==='CHECK'||phase==='ACT'){
+  for(const team of g.teams)team.annual.push({year:g.year,b:team.b,l:team.l,v:team.v,reserve:team.reserve,value:w(team),partial:true});
+ }
+ g.finished=true;
+ record(g,'De spelbegeleider heeft het spel afgerond in jaar '+g.year+' ('+phase+').');
+}
 else if(act.type==='next'){req(leader,'Alleen de spelleider bepaalt de volgende fase.');
  const readyTeams=g.teams.filter(team=>status(g,team)==='gereed');
  if(act.teamIds!==undefined){
@@ -1857,7 +1869,7 @@ function taskPanel(t){
  const content=v.finished?finalPanel():v.phase==='PLAN'?planUI(t):v.phase==='DO'?doUI(t):v.phase==='CHECK'?checkUI(t):actUI(t);
  return `<section class="task task-fixed${legacy?'':' phase-panel'}" id="task" data-taskkey="${v.year}-${v.event?.id||0}-${v.phase}">${heading}${content}</section>`;
 }
-function finalPanel(){let ranks=[...v.teams].sort((a,b)=>b.final-a.final);return `<div class="final-panel"><h2>De tien jaren zijn afgerond</h2><p>De eindscore houdt rekening met maatschappelijke prestaties, financiële reserves en openstaande risico’s.</p><ol>${ranks.map(t=>`<li><b>${esc(t.name)}</b> · ${f1(t.final)} punten</li>`).join('')}</ol></div>`;}
+function finalPanel(){let ranks=[...v.teams].sort((a,b)=>b.final-a.final);return `<div class="final-panel"><h2>Eindstand · Jaar ${v.year}</h2><p>De eindscore houdt rekening met maatschappelijke prestaties, financiële reserves en openstaande risico’s.</p><ol>${ranks.map(t=>`<li><b>${esc(t.name)}</b> · ${f1(t.final)} punten</li>`).join('')}</ol></div>`;}
 function teamHome(){const t=v.me;if(!t)return '';const rank=[...v.teams].sort((a,b)=>b.score-a.score).findIndex(x=>x.id===t.id)+1;
 return `<div class="team-wrap board-team" style="--team:${teamColors[t.id-1]}">${scores(t,rank)}<div class="team-main-row">${v.phase==='PLAN'?`<aside class="focus-maturity">${maturity(t)}</aside>`:''}<div class="focus-map">${mapPanel(t)}</div><div class="focus-action" aria-label="Actuele vraag en toelichting">${taskPanel(t)}</div>${v.phase!=='PLAN'?`<aside class="focus-maturity">${maturity(t)}</aside>`:''}</div>${resources(t)}</div>`;}
 let logYear=0,logTeam=0,finishedOpened=false;
@@ -1876,7 +1888,7 @@ function guideLive(){
  const action={PLAN:'Ontwikkelplan',DO:'Besluit',CHECK:'Conclusie',ACT:'Verbeterkeuze'}[v.phase];
  const table=leaderTable(['Team','Status','Actie'],v.teams.map(t=>[t.name,t.ready==='gereed'?'Gereed':'Open',action+(t.ready==='gereed'?' vastgelegd':' nog vastleggen')]),'Teamstatus');
  const status=initial?'Deelnemers bij start: '+ready:ready+' van '+v.teams.length+' teams gereed';
- return leaderPage('Spelbegeleiding',`<section class="guide-card guide-controls"><strong>Jaar ${v.year} van ${v.gameYears}</strong><div class="phase-list">${G.PHASES.map(p=>`<span class="${p===v.phase?'active':''}" ${p===v.phase?'aria-current="step"':''}>${p}</span>`).join('')}</div><b>${status}</b><div><button class="btn primary" ${allowed?'':'disabled'} onclick="advance()">${next}</button>${!allowed?`<small>${initial?'Wacht op het eerste ontwikkelplan.':'Wacht op '+esc(waiting.map(t=>t.name).join(', '))}</small>`:''}</div></section>
+ return leaderPage('Spelbegeleiding',`<section class="guide-card guide-controls"><strong>Jaar ${v.year} van ${v.gameYears}</strong><div class="phase-list">${G.PHASES.map(p=>`<span class="${p===v.phase?'active':''}" ${p===v.phase?'aria-current="step"':''}>${p}</span>`).join('')}</div><b>${status}</b><div><button class="btn primary" ${allowed?'':'disabled'} onclick="advance()">${next}</button> ${!v.finished&&(v.year>1||v.phase!=='PLAN')?'<button class="btn" onclick="finishSession()">Spel eerder afronden</button>':''}${!allowed?`<small>${initial?'Wacht op het eerste ontwikkelplan.':'Wacht op '+esc(waiting.map(t=>t.name).join(', '))}</small>`:''}</div></section>
  <div class="guide-grid"><section class="guide-card"><h2>Teamstatus</h2>${table}</section><section class="guide-card"><h2>Actuele gebeurtenis</h2>${v.event?`<h3>${esc(v.event.title)}</h3><p>${esc(v.event.situation)}</p>${v.event.secret?`<details><summary>Verborgen werkelijkheid</summary><p>${esc(v.event.secret)}</p></details>`:''}`:'Nog geen gebeurtenis beschikbaar.'}</section></div>
  <section class="guide-card"><details><summary>Teaminstellingen</summary><div class="rename-row">${v.teams.map(t=>`<label>Team ${t.id}<input id="name${t.id}" maxlength="32" value="${esc(t.name)}"><button class="small-btn" onclick="renameTeam(${t.id})">Opslaan</button></label>`).join('')}</div></details></section>
  <section class="guide-card"><h2>Laatste activiteiten</h2>${v.feed.slice(0,3).map(x=>`<p>${esc(x.message)}</p>`).join('')}<button class="small-btn" onclick="setView('history')">Bekijk spelverloop</button></section>`);
@@ -1931,6 +1943,12 @@ function teamYearDashboard(){
  const title=event.eventTitle||DB.gebeurtenissen?.find(x=>x.id===id)?.titel||(year===v.year?v.event?.title:'');
  return `<section class="task team-decisions"><h2>Keuzes en gevolgen</h2><div class="decision-filters"><label>Team <select onchange="dashboardTeam=Number(this.value);render()">${select(teams.map(t=>[t.id,t.name]),team.id)}</select></label><label>Speljaar <select onchange="dashboardYear=Number(this.value);render()">${select([[0,'Huidig jaar'],...Array.from({length:v.year},(_,i)=>[i+1,'Jaar '+(i+1)])],dashboardYear<=v.year?dashboardYear:0)}</select></label></div><h3>Jaar ${year}${title?' · '+esc(title):''}</h3><div class="decision-scroll"><table><thead><tr><th>Fase</th><th>Teamkeuze</th><th>Bereikbaarheid</th><th>Leefbaarheid</th><th>Veiligheid</th><th>Reserve (€)</th></tr></thead><tbody>${rows.join('')}</tbody></table></div><small>Getallen tonen de verandering per fase. Een punt betekent dat het effect nog niet beschikbaar is.</small></section>`;
 }
+window.finishSession=()=>{
+ if(actor!=='leider'||v.finished||busy)return;
+ if(confirm('Spel definitief afronden in jaar '+v.year+' ('+v.phase+')? De huidige stand bepaalt de einduitslag. Daarna kunnen teams geen keuzes meer maken.')){
+  send('finish',{year:v.year,phase:v.phase});
+ }
+};
 window.advance=()=>{
  const ready=v.teams.filter(t=>t.ready==='gereed');
  if((!SERVER||v.selectParticipants===true)&&v.year===1&&v.phase==='PLAN'&&ready.length>0&&ready.length<v.teams.length){
