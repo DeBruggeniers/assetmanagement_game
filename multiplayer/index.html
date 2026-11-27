@@ -1303,7 +1303,7 @@ function taskPanel(t){
  const content=v.finished?finalPanel():v.phase==='PLAN'?planUI(t):v.phase==='DO'?doUI(t):v.phase==='CHECK'?checkUI(t):actUI(t);
  return `<section class="task task-fixed${legacy?'':' phase-panel'}" id="task" data-taskkey="${v.year}-${v.event?.id||0}-${v.phase}">${heading}${content}</section>`;
 }
-function finalPanel(){let ranks=[...v.teams].sort((a,b)=>b.final-a.final);return `<div class="final-panel"><h2>Eindstand · Jaar ${v.year}</h2><p>De eindscore houdt rekening met maatschappelijke prestaties, financiële reserves en openstaande risico’s.</p><ol>${ranks.map(t=>`<li><b>${esc(t.name)}</b> · ${f1(t.final)} punten</li>`).join('')}</ol></div>`;}
+function finalPanel(){let ranks=[...v.teams].sort((a,b)=>b.final-a.final);return `<div class="final-panel"><h2>Eindstand · Jaar ${v.year}</h2><p>De eindscore houdt rekening met maatschappelijke prestaties, financiële reserves en openstaande risico’s.</p><ol>${ranks.map(t=>`<li><b>${esc(t.name)}</b> · ${f1(t.final)} punten<div class="small">Bereikbaarheid <b>${esc(t.b)}</b> · Leefbaarheid <b>${esc(t.l)}</b> · Veiligheid <b>${esc(t.v)}</b></div></li>`).join('')}</ol></div>`;}
 function teamHome(){const t=v.me;if(!t)return '';const rank=[...v.teams].sort((a,b)=>b.score-a.score).findIndex(x=>x.id===t.id)+1;
 return `<div class="team-wrap board-team" style="--team:${teamColors[t.id-1]}">${scores(t,rank)}<div class="team-main-row">${v.phase==='PLAN'?`<aside class="focus-maturity">${maturity(t)}</aside>`:''}<div class="focus-map">${mapPanel(t)}</div><div class="focus-action" aria-label="Actuele vraag en toelichting">${taskPanel(t)}</div>${v.phase!=='PLAN'?`<aside class="focus-maturity">${maturity(t)}</aside>`:''}</div>${resources(t)}</div>`;}
 let logYear=0,logTeam=0,finishedOpened=false;
